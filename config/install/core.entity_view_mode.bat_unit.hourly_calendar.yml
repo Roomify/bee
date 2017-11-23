@@ -2,6 +2,9 @@ status: true
 dependencies:
   module:
     - bat_unit
+  enforced:
+    module:
+      - bee
 id: bat_unit.hourly_calendar
 label: 'Hourly Calendar'
 targetEntityType: bat_unit

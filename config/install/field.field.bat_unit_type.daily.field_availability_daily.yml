@@ -3,6 +3,9 @@ dependencies:
   config:
     - bat_unit.type_bundle.daily
     - field.storage.bat_unit_type.field_availability_daily
+  enforced:
+    module:
+      - bee
 id: bat_unit_type.daily.field_availability_daily
 field_name: field_availability_daily
 entity_type: bat_unit_type

@@ -1,5 +1,8 @@
 status: true
-dependencies: {  }
+dependencies:
+  enforced:
+    module:
+      - bee
 name: Daily
 type: daily
 default_event_value_field_ids:

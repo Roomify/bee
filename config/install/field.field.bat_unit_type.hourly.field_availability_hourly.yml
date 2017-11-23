@@ -3,6 +3,9 @@ dependencies:
   config:
     - bat_unit.type_bundle.hourly
     - field.storage.bat_unit_type.field_availability_hourly
+  enforced:
+    module:
+      - bee
 id: bat_unit_type.hourly.field_availability_hourly
 field_name: field_availability_hourly
 entity_type: bat_unit_type

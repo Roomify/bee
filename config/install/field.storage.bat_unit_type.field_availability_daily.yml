@@ -3,6 +3,9 @@ dependencies:
   module:
     - bat_event
     - bat_unit
+  enforced:
+    module:
+      - bee
 id: bat_unit_type.field_availability_daily
 field_name: field_availability_daily
 entity_type: bat_unit_type

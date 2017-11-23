@@ -12,7 +12,7 @@ function bee_install() {
       'machine_name' => 'bee_daily_available',
       'event_type' => 'availability_daily',
     ]
-  );
+  )->save();
 
   bat_event_create_state(
     [
@@ -22,7 +22,7 @@ function bee_install() {
       'machine_name' => 'bee_daily_not_available',
       'event_type' => 'availability_daily',
     ]
-  );
+  )->save();
 
   bat_event_create_state(
     [
@@ -32,7 +32,7 @@ function bee_install() {
       'machine_name' => 'bee_daily_booked',
       'event_type' => 'availability_daily',
     ]
-  );
+  )->save();
 
   bat_event_create_state(
     [
@@ -42,7 +42,7 @@ function bee_install() {
       'machine_name' => 'bee_hourly_available',
       'event_type' => 'availability_hourly',
     ]
-  );
+  )->save();
 
   bat_event_create_state(
     [
@@ -52,7 +52,7 @@ function bee_install() {
       'machine_name' => 'bee_hourly_not_available',
       'event_type' => 'availability_hourly',
     ]
-  );
+  )->save();
 
   bat_event_create_state(
     [
@@ -62,11 +62,39 @@ function bee_install() {
       'machine_name' => 'bee_hourly_booked',
       'event_type' => 'availability_hourly',
     ]
-  );
+  )->save();
 }
 
 /**
  * Implements hook_uninstall().
  */
 function bee_uninstall() {
+  $node_types = \Drupal::entityTypeManager()->getStorage('node_type')->loadMultiple();
+
+  foreach ($node_types as $node_type) {
+    Drupal::configFactory()->getEditable('node.type.' . $node_type->id())->clear('bee')->save();
+
+    Drupal::configFactory()->getEditable('field.field.node.' . $node_type->id() . '.field_availability_daily')->delete();
+    Drupal::configFactory()->getEditable('field.field.node.' . $node_type->id() . '.field_availability_hourly')->delete();
+  }
+
+  Drupal::configFactory()->getEditable('field.storage.node.field_availability_daily')->delete();
+  Drupal::configFactory()->getEditable('field.storage.node.field_availability_hourly')->delete();
+
+  $states = [
+    'bee_daily_available',
+    'bee_daily_not_available',
+    'bee_daily_booked',
+    'bee_hourly_available',
+    'bee_hourly_not_available',
+    'bee_hourly_booked',
+  ];
+  foreach ($states as $machine_name) {
+    if ($state = bat_event_load_state_by_machine_name($machine_name)) {
+      $state->delete();
+    }
+  }
+
+  bat_event_delete_event_type_schema('availability_daily');
+  bat_event_delete_event_type_schema('availability_hourly');
 }

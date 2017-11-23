@@ -1,5 +1,8 @@
 status: true
-dependencies: {  }
+dependencies:
+  enforced:
+    module:
+      - bee
 name: 'Availability Hourly'
 type: availability_hourly
 event_granularity: bat_hourly
