@@ -127,6 +127,8 @@ function bee_node_type_edit_form_submit(array &$form, FormStateInterface $form_s
 
       $bee_settings['type_id'] = $bat_type->id();
     }
+
+    \Drupal::configFactory()->getEditable('node.type.' . $node_type->id())->set('bee', $bee_settings)->save();
   }
   else {
     if (isset($bee_settings['type_id'])) {
@@ -145,12 +147,10 @@ function bee_node_type_edit_form_submit(array &$form, FormStateInterface $form_s
 
       $bat_type = bat_type_load($bee_settings['type_id']);
       $bat_type->delete();
-
-      unset($bee_settings['type_id']);
     }
-  }
 
-  \Drupal::configFactory()->getEditable('node.type.' . $node_type->id())->set('bee', $bee_settings)->save();
+    \Drupal::configFactory()->getEditable('node.type.' . $node_type->id())->clear('bee')->save();
+  }
 }
 
 /**
@@ -258,17 +258,35 @@ function bee_entity_view_alter(array &$build, EntityInterface $entity, EntityVie
         ],
       ];
 
-      $render_array = [
-        'calendar' => [
-          '#theme' => 'bat_fullcalendar',
-          '#calendar_settings' => $calendar_settings,
-          '#attached' => ['library' => ['bat_event_ui/bat_event_ui', 'bat_fullcalendar/bat-fullcalendar-scheduler']],
-        ],
-      ];
-
       $build = array(
         '#markup' => render($render_array),
       );
+    }
+  }
+}
+
+/**
+ * Implements hook_bat_api_events_index_calendar_alter().
+ */
+function bee_bat_api_events_index_calendar_alter(&$events, $context) {
+  global $user;
+
+  foreach ($events as $id => $event) {
+    if ($event['type'] == 'availability_daily' || $event['type'] == 'availability_hourly') {
+      if ($event['blocking']) {
+        $state = bat_event_load_state_by_machine_name('bee_daily_not_available');
+
+        $events[$id]['color'] = $state->getColor();
+        $events[$id]['rendering'] = 'background';
+        $events[$id]['title'] = $state->getCalendarLabel();
+      }
+
+      $start_date = new DateTime($event['start']);
+      $end_date = new DateTime($event['end']);
+
+      if ($start_date->format('Y-m-d') != $end_date->format('Y-m-d')) {
+        $events[$id]['end'] = $end_date->add(new DateInterval('P1D'))->format('Y-m-d') . 'T00:00:00';
+      }
     }
   }
 }

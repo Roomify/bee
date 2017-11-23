@@ -1,5 +1,7 @@
 <?php
 
+use Drupal\user\RoleInterface;
+
 /**
  * Implements hook_install().
  */
@@ -63,6 +65,16 @@ function bee_install() {
       'event_type' => 'availability_hourly',
     ]
   )->save();
+
+  user_role_change_permissions(RoleInterface::ANONYMOUS_ID, [
+    'view calendar data for any availability_daily event' => TRUE,
+    'view calendar data for any availability_hourly event' => TRUE,
+  ]);
+
+  user_role_change_permissions(RoleInterface::AUTHENTICATED_ID, [
+    'view calendar data for any availability_daily event' => TRUE,
+    'view calendar data for any availability_hourly event' => TRUE,
+  ]);
 }
 
 /**
