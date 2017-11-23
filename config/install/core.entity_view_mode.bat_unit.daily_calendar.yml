@@ -1,0 +1,8 @@
+status: true
+dependencies:
+  module:
+    - bat_unit
+id: bat_unit.daily_calendar
+label: 'Daily Calendar'
+targetEntityType: bat_unit
+cache: true
