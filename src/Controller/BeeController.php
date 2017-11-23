@@ -20,26 +20,43 @@ class BeeController extends ControllerBase implements ContainerInjectionInterfac
   public function availability(NodeInterface $node) {
     $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
 
+    $unit_type = $bee_settings['type_id'];
+    $bat_unit = $node->get('field_availability_' . $bee_settings['bookable_type'])->entity;
+
     if ($bee_settings['bookable_type'] == 'daily') {
       $event_type = 'availability_daily';
       $event_granularity = 'bat_daily';
+
+      $fc_user_settings = [
+        'batCalendar' => [
+          [
+            'unitType' => $unit_type,
+            'unitIds' => $bat_unit->id(),
+            'eventType' => $event_type,
+            'eventGranularity' => $event_granularity,
+            'viewsTimelineThirtyDaySlotDuration' => ['days' => 1],
+          ],
+        ],
+      ];
     }
     else {
       $event_type = 'availability_hourly';
       $event_granularity = 'bat_hourly';
+
+       $fc_user_settings = [
+        'batCalendar' => [
+          [
+            'unitType' => $unit_type,
+            'unitIds' => $bat_unit->id(),
+            'eventType' => $event_type,
+            'eventGranularity' => $event_granularity,
+            'views' => 'timelineTenDay, timelineMonth',
+            'defaultView' => 'timelineTenDay',
+          ],
+        ],
+      ];
     }
 
-    $unit_type = $bee_settings['type_id'];
-
-    $fc_user_settings = [
-      'batCalendar' => [
-        [
-          'unitType' => $unit_type,
-          'eventType' => $event_type,
-          'eventGranularity' => $event_granularity,
-        ],
-      ],
-    ];
 
     $calendar_settings['user_settings'] = $fc_user_settings;
     $calendar_settings['calendar_id'] = 'fullcalendar-scheduler';

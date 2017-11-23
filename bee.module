@@ -130,8 +130,23 @@ function bee_node_type_edit_form_submit(array &$form, FormStateInterface $form_s
   }
   else {
     if (isset($bee_settings['type_id'])) {
+      $node_storage = \Drupal::entityManager()->getStorage('node');
+
+      $query = \Drupal::entityQuery('node')
+        ->condition('type', $node_type->id());
+
+      $nids = $query->execute();
+      foreach ($node_storage->loadMultiple($nids) as $node) {
+        if ($node->hasField('field_availability_' . $bee_settings['bookable_type'])) {
+          $bat_unit = $node->get('field_availability_' . $bee_settings['bookable_type'])->entity;
+          bat_unit_delete($bat_unit);
+        }
+      }
+
       $bat_type = bat_type_load($bee_settings['type_id']);
       $bat_type->delete();
+
+      unset($bee_settings['type_id']);
     }
   }
 
@@ -167,8 +182,9 @@ function bee_node_delete(EntityInterface $node) {
   $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
 
   if ($node->hasField('field_availability_' . $bee_settings['bookable_type'])) {
-    $bat_unit = $node->get('field_availability_' . $bee_settings['bookable_type'])->entity;
-    bat_unit_delete($bat_unit);
+    if ($bat_unit = $node->get('field_availability_' . $bee_settings['bookable_type'])->entity) {
+      bat_unit_delete($bat_unit);
+    }
   }
 }
 
@@ -190,6 +206,7 @@ function bee_entity_view_alter(array &$build, EntityInterface $entity, EntityVie
           'batCalendar' => [
             [
               'unitType' => $unit_type,
+              'unitIds' => $entity->id(),
               'eventType' => $event_type,
               'eventGranularity' => $event_granularity,
               'editable' => FALSE,
@@ -213,6 +230,7 @@ function bee_entity_view_alter(array &$build, EntityInterface $entity, EntityVie
           'batCalendar' => [
             [
               'unitType' => $unit_type,
+              'unitIds' => $entity->id(),
               'eventType' => $event_type,
               'eventGranularity' => $event_granularity,
               'editable' => FALSE,
