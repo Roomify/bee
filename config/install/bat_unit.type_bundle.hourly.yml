@@ -1,0 +1,7 @@
+status: true
+dependencies: {  }
+name: Hourly
+type: hourly
+default_event_value_field_ids:
+  availability_daily: ''
+  availability_hourly: field_availability_hourly

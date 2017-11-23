@@ -1,0 +1,18 @@
+status: true
+dependencies:
+  module:
+    - bat_event
+    - bat_unit
+id: bat_unit_type.field_availability_daily
+field_name: field_availability_daily
+entity_type: bat_unit_type
+type: entity_reference
+settings:
+  target_type: state
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

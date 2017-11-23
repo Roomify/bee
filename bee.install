@@ -1,0 +1,72 @@
+<?php
+
+/**
+ * Implements hook_install().
+ */
+function bee_install() {
+  bat_event_create_state(
+    [
+      'name' => 'Available',
+      'color' => '#42f649',
+      'calendar_label' => 'AV',
+      'machine_name' => 'bee_daily_available',
+      'event_type' => 'availability_daily',
+    ]
+  );
+
+  bat_event_create_state(
+    [
+      'name' => 'Not available',
+      'color' => '#f04b4b',
+      'calendar_label' => 'N/A',
+      'machine_name' => 'bee_daily_not_available',
+      'event_type' => 'availability_daily',
+    ]
+  );
+
+  bat_event_create_state(
+    [
+      'name' => 'Booked',
+      'color' => '#4b3cea',
+      'calendar_label' => 'BOOK',
+      'machine_name' => 'bee_daily_booked',
+      'event_type' => 'availability_daily',
+    ]
+  );
+
+  bat_event_create_state(
+    [
+      'name' => 'Available',
+      'color' => '#42f649',
+      'calendar_label' => 'AV',
+      'machine_name' => 'bee_hourly_available',
+      'event_type' => 'availability_hourly',
+    ]
+  );
+
+  bat_event_create_state(
+    [
+      'name' => 'Not available',
+      'color' => '#f04b4b',
+      'calendar_label' => 'N/A',
+      'machine_name' => 'bee_hourly_not_available',
+      'event_type' => 'availability_hourly',
+    ]
+  );
+
+  bat_event_create_state(
+    [
+      'name' => 'Booked',
+      'color' => '#4b3cea',
+      'calendar_label' => 'BOOK',
+      'machine_name' => 'bee_hourly_booked',
+      'event_type' => 'availability_hourly',
+    ]
+  );
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function bee_uninstall() {
+}

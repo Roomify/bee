@@ -1,0 +1,9 @@
+status: true
+dependencies: {  }
+name: 'Availability Hourly'
+type: availability_hourly
+event_granularity: bat_hourly
+fixed_event_states: 1
+default_event_value_field_ids: null
+default_event_label_field_name: null
+target_entity_type: bat_unit

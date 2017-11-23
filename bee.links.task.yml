@@ -1,0 +1,5 @@
+bee.node.availability:
+  route_name: bee.node.availability
+  base_route: entity.node.canonical
+  title: 'Availability'
+  weight: 15

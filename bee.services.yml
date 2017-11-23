@@ -1,0 +1,6 @@
+services:
+  access_check.bee.availability:
+    class: Drupal\bee\Access\BeeAvailabilityAccessCheck
+    arguments: ['@entity.manager']
+    tags:
+      - { name: access_check, applies_to: _bee_availability_access }

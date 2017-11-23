@@ -1,0 +1,6 @@
+bee.node.availability:
+  path: '/node/{node}/availability'
+  defaults:
+    _controller: '\Drupal\bee\Controller\BeeController::availability'
+  requirements:
+    _bee_availability_access: 'node'

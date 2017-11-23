@@ -1,0 +1,6 @@
+administer bee settings:
+  title: 'Administer bee settings'
+  description: 'Administer bee settings'
+
+permission_callbacks:
+  - Drupal\bee\BeePermissions::permissions
