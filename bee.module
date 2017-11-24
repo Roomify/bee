@@ -213,11 +213,11 @@ function bee_entity_view_alter(array &$build, EntityInterface $entity, EntityVie
               'selectable' => FALSE,
               'defaultView' => 'month',
               'views' => 'month',
-              'background' => '0',
               'headerLeft' => 'today',
               'headerCenter' => 'title',
               'headerRight' => 'prev, next',
               'resourceLabelText' => ' ',
+              'background' => 'hide-book',
             ],
           ],
         ];
@@ -242,6 +242,7 @@ function bee_entity_view_alter(array &$build, EntityInterface $entity, EntityVie
               'headerCenter' => 'title',
               'headerRight' => 'prev, next',
               'resourceLabelText' => ' ',
+              'background' => 'hide-book',
             ],
           ],
         ];
@@ -269,23 +270,29 @@ function bee_entity_view_alter(array &$build, EntityInterface $entity, EntityVie
  * Implements hook_bat_api_events_index_calendar_alter().
  */
 function bee_bat_api_events_index_calendar_alter(&$events, $context) {
-  global $user;
+  if ($context['background'] == 'hide-book') {
+    foreach ($events as $id => $event) {
+      if ($event['type'] == 'availability_daily' || $event['type'] == 'availability_hourly') {
+        unset($events[$id]['rendering']);
 
-  foreach ($events as $id => $event) {
-    if ($event['type'] == 'availability_daily' || $event['type'] == 'availability_hourly') {
-      if ($event['blocking']) {
-        $state = bat_event_load_state_by_machine_name('bee_daily_not_available');
+        if ($event['blocking']) {
+          if ($event['type'] == 'availability_daily') {
+            $state = bat_event_load_state_by_machine_name('bee_daily_not_available');
+          }
+          else {
+            $state = bat_event_load_state_by_machine_name('bee_hourly_not_available');
+          }
 
-        $events[$id]['color'] = $state->getColor();
-        $events[$id]['rendering'] = 'background';
-        $events[$id]['title'] = $state->getCalendarLabel();
-      }
+          $events[$id]['color'] = $state->getColor();
+          $events[$id]['title'] = $state->getCalendarLabel();
+        }
 
-      $start_date = new DateTime($event['start']);
-      $end_date = new DateTime($event['end']);
+        $start_date = new DateTime($event['start']);
+        $end_date = new DateTime($event['end']);
 
-      if ($start_date->format('Y-m-d') != $end_date->format('Y-m-d')) {
-        $events[$id]['end'] = $end_date->add(new DateInterval('P1D'))->format('Y-m-d') . 'T00:00:00';
+        if ($start_date->format('Y-m-d') != $end_date->format('Y-m-d')) {
+          $events[$id]['end'] = $end_date->add(new DateInterval('P1D'))->format('Y-m-d') . 'T00:00:00';
+        }
       }
     }
   }
