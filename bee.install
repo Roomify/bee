@@ -11,6 +11,7 @@ function bee_install() {
       'name' => 'Available',
       'color' => '#42f649',
       'calendar_label' => 'AV',
+      'blocking' => 0,
       'machine_name' => 'bee_daily_available',
       'event_type' => 'availability_daily',
     ]
@@ -21,6 +22,7 @@ function bee_install() {
       'name' => 'Not available',
       'color' => '#f04b4b',
       'calendar_label' => 'N/A',
+      'blocking' => 0,
       'machine_name' => 'bee_daily_not_available',
       'event_type' => 'availability_daily',
     ]
@@ -31,6 +33,7 @@ function bee_install() {
       'name' => 'Booked',
       'color' => '#4b3cea',
       'calendar_label' => 'BOOK',
+      'blocking' => 1,
       'machine_name' => 'bee_daily_booked',
       'event_type' => 'availability_daily',
     ]
@@ -41,6 +44,7 @@ function bee_install() {
       'name' => 'Available',
       'color' => '#42f649',
       'calendar_label' => 'AV',
+      'blocking' => 0,
       'machine_name' => 'bee_hourly_available',
       'event_type' => 'availability_hourly',
     ]
@@ -51,6 +55,7 @@ function bee_install() {
       'name' => 'Not available',
       'color' => '#f04b4b',
       'calendar_label' => 'N/A',
+      'blocking' => 0,
       'machine_name' => 'bee_hourly_not_available',
       'event_type' => 'availability_hourly',
     ]
@@ -61,6 +66,7 @@ function bee_install() {
       'name' => 'Booked',
       'color' => '#4b3cea',
       'calendar_label' => 'BOOK',
+      'blocking' => 1,
       'machine_name' => 'bee_hourly_booked',
       'event_type' => 'availability_hourly',
     ]
