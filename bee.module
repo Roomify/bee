@@ -56,6 +56,99 @@ function bee_form_alter(&$form, FormStateInterface $form_state, $form_id) {
       $form['#attached']['library'][] = 'bee/bee';
     }
   }
+
+  if (preg_match('/^node_.*_edit_form$/', $form_id)) {
+    $node = $form_state->getFormObject()->getEntity();
+
+    $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+
+    $units_count = count($node->get('field_availability_' . $bee_settings['bookable_type'])->getValue());
+
+    $form['bee'] = [
+      '#type' => 'details',
+      '#title' => t('BEE'),
+      '#group' => 'advanced',
+      '#tree' => TRUE,
+      '#prefix' => '<div id="bee-node-wrapper">',
+      '#suffix' => '</div>',
+    ];
+
+    $form['bee']['units_count'] = [
+      '#type' => 'item',
+      '#title' => t('Number of referenced units'),
+      '#markup' => $units_count,
+      '#prefix' => '<div class="container-inline">',
+      '#suffix' => '</div>',
+    ];
+
+    $form['bee']['number_units'] = [
+      '#type' => 'number',
+      '#title' => t('Number of units to add'),
+      '#min' => 1,
+      '#step' => 1,
+    ];
+
+    $form['bee']['add_more'] = [
+      '#type' => 'submit',
+      '#value' => t('Add units'),
+      '#limit_validation_errors' => [],
+      '#executes_submit_callback' => FALSE,
+      '#ajax' => [
+        'callback' => 'bee_node_add_more_units_submit',
+        'wrapper' => 'bee-node-wrapper',
+      ],
+    ];
+  }
+}
+
+/**
+ * Ajax callback for the "Add units" button.
+ */
+function bee_node_add_more_units_submit($form, FormStateInterface $form_state) {
+  $number_units = $form_state->getValue(['bee', 'number_units']);
+
+  if (is_numeric($number_units) && $number_units > 0) {
+    $node = $form_state->getFormObject()->getEntity();
+
+    $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+
+    $units_ids = $node->get('field_availability_' . $bee_settings['bookable_type'])->getValue();
+
+    for ($i = 0; $i < $number_units; $i++) {
+      $bat_unit = bat_unit_create(
+        [
+          'name' => $node->label(),
+          'type' => 'default',
+          'unit_type_id' => $bee_settings['type_id'],
+        ]
+      );
+      bat_unit_save($bat_unit);
+
+      $units_ids[]['target_id'] = $bat_unit->id();
+    }
+
+    $node->set('field_availability_' . $bee_settings['bookable_type'], $units_ids);
+    $node->setNewRevision(FALSE);
+    $node->save();
+
+    $units_count = count($node->get('field_availability_' . $bee_settings['bookable_type'])->getValue());
+
+    $form['bee']['units_count']['#markup'] = $units_count;
+
+    $form['bee']['number_units']['#value'] = '';
+
+    drupal_set_message(t('@number Units added.', ['@number' => $number_units]));
+  }
+  elseif ($number_units === '') {
+    drupal_set_message(t('Number of units is required.'), 'error');
+  }
+  else {
+    drupal_set_message(t('Number of units must be a positive integer.'), 'error');
+  }
+
+  $form['bee']['#open'] = TRUE;
+
+  return $form['bee'];
 }
 
 /**
@@ -79,7 +172,7 @@ function bee_node_type_edit_form_submit(array &$form, FormStateInterface $form_s
         'field_name' => $field_name,
         'entity_type' => 'node',
         'type' => 'entity_reference',
-        'cardinality' => 1,
+        'cardinality' => -1,
         'locked' => 1,
         'settings' => [
           'target_type' => 'bat_unit',
