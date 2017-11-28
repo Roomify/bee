@@ -1,0 +1,7 @@
+bee:
+  version: VERSION
+  js:
+    js/bee.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal

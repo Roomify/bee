@@ -52,6 +52,8 @@ function bee_form_alter(&$form, FormStateInterface $form_state, $form_id) {
       }
 
       $form['actions']['submit']['#submit'][] = 'bee_node_type_edit_form_submit';
+
+      $form['#attached']['library'][] = 'bee/bee';
     }
   }
 }
