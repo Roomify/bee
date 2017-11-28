@@ -56,8 +56,7 @@ function bee_form_alter(&$form, FormStateInterface $form_state, $form_id) {
       $form['#attached']['library'][] = 'bee/bee';
     }
   }
-
-  if (preg_match('/^node_.*_edit_form$/', $form_id)) {
+  elseif (preg_match('/^node_.*_edit_form$/', $form_id)) {
     $node = $form_state->getFormObject()->getEntity();
 
     $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
