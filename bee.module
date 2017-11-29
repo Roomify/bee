@@ -90,10 +90,13 @@ function bee_form_alter(&$form, FormStateInterface $form_state, $form_id) {
     $form['bee']['add_more'] = [
       '#type' => 'submit',
       '#value' => t('Add units'),
-      '#limit_validation_errors' => [],
-      '#executes_submit_callback' => FALSE,
+      '#limit_validation_errors' => [
+        ['bee', 'number_units'],
+        ['changed'],
+      ],
+      '#submit' => ['bee_node_add_more_units_submit'],
       '#ajax' => [
-        'callback' => 'bee_node_add_more_units_submit',
+        'callback' => 'bee_node_add_more_units_ajax_callback',
         'wrapper' => 'bee-node-wrapper',
       ],
     ];
@@ -101,7 +104,7 @@ function bee_form_alter(&$form, FormStateInterface $form_state, $form_id) {
 }
 
 /**
- * Ajax callback for the "Add units" button.
+ * Submit function for the "Add units" button.
  */
 function bee_node_add_more_units_submit($form, FormStateInterface $form_state) {
   $number_units = $form_state->getValue(['bee', 'number_units']);
@@ -127,6 +130,7 @@ function bee_node_add_more_units_submit($form, FormStateInterface $form_state) {
     }
 
     $node->set('field_availability_' . $bee_settings['bookable_type'], $units_ids);
+    $node->changed_time = $form_state->getValue('changed');
     $node->setNewRevision(FALSE);
     $node->save();
 
@@ -146,7 +150,12 @@ function bee_node_add_more_units_submit($form, FormStateInterface $form_state) {
   }
 
   $form['bee']['#open'] = TRUE;
+}
 
+/**
+ * Ajax callback for the "Add units" button.
+ */
+function bee_node_add_more_units_ajax_callback($form, FormStateInterface $form_state) {
   return $form['bee'];
 }
 
@@ -244,6 +253,15 @@ function bee_node_type_edit_form_submit(array &$form, FormStateInterface $form_s
     }
 
     \Drupal::configFactory()->getEditable('node.type.' . $node_type->id())->clear('bee')->save();
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_presave().
+ */
+function bee_node_presave(EntityInterface $node) {
+  if (isset($node->changed_time)) {
+    $node->setChangedTime($node->changed_time);
   }
 }
 
