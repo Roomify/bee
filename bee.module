@@ -119,7 +119,7 @@ function bee_node_add_more_units_submit($form, FormStateInterface $form_state) {
     for ($i = 0; $i < $number_units; $i++) {
       $bat_unit = bat_unit_create(
         [
-          'name' => $node->label(),
+          'name' => $node->label() . ' ' . (count($units_ids) + 1),
           'type' => 'default',
           'unit_type_id' => $bee_settings['type_id'],
         ]
@@ -274,7 +274,7 @@ function bee_node_insert(EntityInterface $node) {
   if (isset($bee_settings['bookable']) && $bee_settings['bookable']) {
     $bat_unit = bat_unit_create(
       [
-        'name' => $node->label(),
+        'name' => $node->label() . ' 1',
         'type' => 'default',
         'unit_type_id' => $bee_settings['type_id'],
       ]
