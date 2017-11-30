@@ -9,19 +9,23 @@ use Drupal\node\NodeInterface;
 class BeeController extends ControllerBase implements ContainerInjectionInterface {
 
   /**
-   *
+   * Constructs a new BeeController instance.
    */
   public function __construct() {
   }
 
   /**
-   *
+   * Availability calendar page.
    */
   public function availability(NodeInterface $node) {
     $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
 
     $unit_type = $bee_settings['type_id'];
-    $bat_unit = $node->get('field_availability_' . $bee_settings['bookable_type'])->entity;
+
+    $bat_unit_ids = [];
+    foreach ($node->get('field_availability_' . $bee_settings['bookable_type']) as $unit) {
+      $bat_unit_ids[] = $unit->entity->id();
+    }
 
     if ($bee_settings['bookable_type'] == 'daily') {
       $event_type = 'availability_daily';
@@ -31,7 +35,7 @@ class BeeController extends ControllerBase implements ContainerInjectionInterfac
         'batCalendar' => [
           [
             'unitType' => $unit_type,
-            'unitIds' => $bat_unit->id(),
+            'unitIds' => implode(',', $bat_unit_ids),
             'eventType' => $event_type,
             'eventGranularity' => $event_granularity,
             'viewsTimelineThirtyDaySlotDuration' => ['days' => 1],
@@ -47,7 +51,7 @@ class BeeController extends ControllerBase implements ContainerInjectionInterfac
         'batCalendar' => [
           [
             'unitType' => $unit_type,
-            'unitIds' => $bat_unit->id(),
+            'unitIds' => implode(',', $bat_unit_ids),
             'eventType' => $event_type,
             'eventGranularity' => $event_granularity,
             'views' => 'timelineTenDay, timelineMonth',
