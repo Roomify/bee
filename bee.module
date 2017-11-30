@@ -301,6 +301,37 @@ function bee_node_delete(EntityInterface $node) {
 }
 
 /**
+ * Implements hook_theme_registry_alter().
+ */
+function bee_theme_registry_alter(&$theme_registry) {
+  $theme_registry['field__node__field_availability_hourly'] = [
+    'template' => 'field-availability-hourly',
+    'path' => drupal_get_path('module', 'bee') . '/templates',
+    'render element' => 'element',
+    'base hook' => 'field',
+    'type' => 'module',
+    'theme path' => drupal_get_path('module', 'bee'),
+    'preprocess functions' => [
+      'template_preprocess',
+      'template_preprocess_field',
+    ],
+  ];
+
+  $theme_registry['field__node__field_availability_daily'] = [
+    'template' => 'field-availability-daily',
+    'path' => drupal_get_path('module', 'bee') . '/templates',
+    'render element' => 'element',
+    'base hook' => 'field',
+    'type' => 'module',
+    'theme path' => drupal_get_path('module', 'bee'),
+    'preprocess functions' => [
+      'template_preprocess',
+      'template_preprocess_field',
+    ],
+  ];
+}
+
+/**
  * Implements hook_entity_view_alter().
  */
 function bee_entity_view_alter(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display) {
@@ -310,6 +341,13 @@ function bee_entity_view_alter(array &$build, EntityInterface $entity, EntityVie
 
       $unit_type = $bat_type->id();
 
+      $node = $build['#bat_unit']->_referringItem->getEntity();
+
+      $units_ids = [];
+      foreach ($node->get('field_availability_' . $bat_type->bundle()) as $unit) {
+        $units_ids[] = $unit->entity->id();
+      }
+
       if ($bat_type->bundle() == 'daily') {
         $event_type = 'availability_daily';
         $event_granularity = 'bat_daily';
@@ -318,7 +356,7 @@ function bee_entity_view_alter(array &$build, EntityInterface $entity, EntityVie
           'batCalendar' => [
             [
               'unitType' => $unit_type,
-              'unitIds' => $entity->id(),
+              'unitIds' => implode(',', $units_ids),
               'eventType' => $event_type,
               'eventGranularity' => $event_granularity,
               'editable' => FALSE,
@@ -342,7 +380,7 @@ function bee_entity_view_alter(array &$build, EntityInterface $entity, EntityVie
           'batCalendar' => [
             [
               'unitType' => $unit_type,
-              'unitIds' => $entity->id(),
+              'unitIds' => implode(',', $units_ids),
               'eventType' => $event_type,
               'eventGranularity' => $event_granularity,
               'editable' => FALSE,
@@ -371,9 +409,9 @@ function bee_entity_view_alter(array &$build, EntityInterface $entity, EntityVie
         ],
       ];
 
-      $build = array(
+      $build = [
         '#markup' => render($render_array),
-      );
+      ];
     }
   }
 }
