@@ -4,3 +4,14 @@ bee.node.availability:
     _controller: '\Drupal\bee\Controller\BeeController::availability'
   requirements:
     _bee_availability_access: 'node'
+
+bee.node.add_reservation:
+  path: '/node/{node}/add-reservation'
+  defaults:
+    _form: '\Drupal\bee\Form\AddReservationForm'
+  options:
+    parameters:
+      node:
+        type: entity:node
+  requirements:
+    _permission: 'access content'
