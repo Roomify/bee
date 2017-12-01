@@ -125,6 +125,10 @@ class AddReservationForm extends FormBase {
     
     $event->set('event_bat_unit_reference', reset($available_units));
     $event->save();
+
+    drupal_set_message(t('Reservation created!'));
+
+    $form_state->setRedirect('entity.node.canonical', ['node' => $node->id()]);
   }
 
   /**
