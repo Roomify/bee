@@ -4,3 +4,8 @@ services:
     arguments: ['@entity.manager']
     tags:
       - { name: access_check, applies_to: _bee_availability_access }
+  access_check.bee.add-reservation:
+    class: Drupal\bee\Access\BeeAddReservationAccessCheck
+    arguments: ['@entity.manager']
+    tags:
+      - { name: access_check, applies_to: _bee_add_reservation_access }

@@ -14,4 +14,4 @@ bee.node.add_reservation:
       node:
         type: entity:node
   requirements:
-    _permission: 'access content'
+    _bee_add_reservation_access: 'node'
