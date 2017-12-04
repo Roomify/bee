@@ -94,10 +94,16 @@ function bee_uninstall() {
 
     Drupal::configFactory()->getEditable('field.field.node.' . $node_type->id() . '.field_availability_daily')->delete();
     Drupal::configFactory()->getEditable('field.field.node.' . $node_type->id() . '.field_availability_hourly')->delete();
+
+    Drupal::configFactory()->getEditable('field.field.node.' . $node_type->id() . '.field_open_hours')->delete();
+    Drupal::configFactory()->getEditable('field.field.node.' . $node_type->id() . '.field_use_open_hours')->delete();
   }
 
   Drupal::configFactory()->getEditable('field.storage.node.field_availability_daily')->delete();
   Drupal::configFactory()->getEditable('field.storage.node.field_availability_hourly')->delete();
+
+  Drupal::configFactory()->getEditable('field.storage.node.field_open_hours')->delete();
+  Drupal::configFactory()->getEditable('field.storage.node.field_use_open_hours')->delete();
 
   $states = [
     'bee_daily_available',
