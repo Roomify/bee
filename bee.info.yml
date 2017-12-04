@@ -7,3 +7,4 @@ package: bat
 dependencies:
   - bat_booking
   - bat_event_ui
+  - office_hours
