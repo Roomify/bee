@@ -5,6 +5,7 @@ namespace Drupal\bee\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\node\NodeInterface;
+use Drupal\office_hours\OfficeHoursDateHelper;
 
 class BeeController extends ControllerBase implements ContainerInjectionInterface {
 
@@ -44,6 +45,25 @@ class BeeController extends ControllerBase implements ContainerInjectionInterfac
       ];
     }
     else {
+      if ($node->get('field_use_open_hours')) {
+        $business_hours = [];
+
+        foreach ($node->get('field_open_hours')->getValue() as $value) {
+          $business_hours[] = [
+            'dow' => [$value['day']],
+            'start' => OfficeHoursDateHelper::format($value['starthours'], 'H:i'),
+            'end' => OfficeHoursDateHelper::format($value['endhours'], 'H:i'),
+          ];
+        }
+      }
+      else {
+        $business_hours = [
+          'start' => '00:00',
+          'end' => '24:00',
+          'dow' => [0, 1, 2, 3, 4, 5, 6],
+        ];
+      }
+
       $event_type = 'availability_hourly';
       $event_granularity = 'bat_hourly';
 
@@ -56,6 +76,8 @@ class BeeController extends ControllerBase implements ContainerInjectionInterfac
             'eventGranularity' => $event_granularity,
             'views' => 'timelineTenDay, timelineMonth',
             'defaultView' => 'timelineTenDay',
+            'businessHours' => $business_hours,
+            'selectConstraint' => 'businessHours',
           ],
         ],
       ];
