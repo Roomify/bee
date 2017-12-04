@@ -106,15 +106,21 @@ function bee_form_alter(&$form, FormStateInterface $form_state, $form_id) {
         '#weight' => $form['field_open_hours']['#weight'] + 1,
       ];
 
-      $form['field_use_open_hours']['#group'] = 'bee';
-      $form['field_use_open_hours']['#weight'] = $form['field_open_hours']['#weight'] - 1;
+      if ($bee_settings['bookable_type'] == 'hourly') {
+        $form['field_use_open_hours']['#group'] = 'bee';
+        $form['field_use_open_hours']['#weight'] = $form['field_open_hours']['#weight'] - 1;
 
-      $form['field_open_hours']['#group'] = 'bee';
-      $form['field_open_hours']['#states'] = [
-        'visible' => [
-          ':input[name="field_use_open_hours[value]"]' => ['checked' => TRUE],
-        ],
-      ];
+        $form['field_open_hours']['#group'] = 'bee';
+        $form['field_open_hours']['#states'] = [
+          'visible' => [
+            ':input[name="field_use_open_hours[value]"]' => ['checked' => TRUE],
+          ],
+        ];
+      }
+      else {
+        $form['field_use_open_hours']['#access'] = FALSE;
+        $form['field_open_hours']['#access'] = FALSE;
+      }
     }
     else {
       if (isset($form['field_use_open_hours'])) {
