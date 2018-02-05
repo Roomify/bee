@@ -2,5 +2,9 @@ administer bee settings:
   title: 'Administer bee settings'
   description: 'Administer bee settings'
 
+create bee reservation:
+  title: 'Create bee reservation'
+  description: 'Create bee reservation'
+
 permission_callbacks:
   - Drupal\bee\BeePermissions::permissions

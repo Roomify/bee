@@ -38,7 +38,9 @@ class BeeAddReservationAccessCheck implements AccessInterface {
     $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
 
     if (isset($bee_settings['bookable']) && $bee_settings['bookable']) {
-      return AccessResult::allowed();
+      if (\Drupal::currentUser()->hasPermission('create bee reservation')) {
+        return AccessResult::allowed();
+      }
     }
 
     return AccessResult::forbidden();
