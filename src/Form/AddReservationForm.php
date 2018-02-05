@@ -94,13 +94,12 @@ class AddReservationForm extends FormBase {
 
       $booked_state = bat_event_load_state_by_machine_name('bee_daily_booked');
 
-      $event = bat_event_create(
-        [
-          'type' => 'availability_daily',
-          'event_start' => $start_date->format('Y-m-d H:i:s'),
-          'event_end' => $end_date->format('Y-m-d H:i:s'),
-        ]
-      );
+      $event = bat_event_create(['type' => 'availability_daily']);
+      $event_dates = [
+        'value' => $start_date->format('Y-m-d\TH:i:00'),
+        'end_value' => $end_date->format('Y-m-d\TH:i:00'),
+      ];
+      $event->set('event_dates', $event_dates);
       $event->set('event_state_reference', $booked_state->id());
     }
     else {
@@ -109,18 +108,17 @@ class AddReservationForm extends FormBase {
 
       $booked_state = bat_event_load_state_by_machine_name('bee_hourly_booked');
 
-      $event = bat_event_create(
-        [
-          'type' => 'availability_hourly',
-          'event_start' => $start_date->format('Y-m-d H:i:s'),
-          'event_end' => $end_date->format('Y-m-d H:i:s'),
-        ]
-      );
+      $event = bat_event_create(['type' => 'availability_hourly']);
+      $event_dates = [
+        'value' => $start_date->format('Y-m-d\TH:i:00'),
+        'end_value' => $end_date->format('Y-m-d\TH:i:00'),
+      ];
+      $event->set('event_dates', $event_dates);
       $event->set('event_state_reference', $booked_state->id());
     }
 
     $available_units = $this->getAvailableUnits($values);
-
+    
     $event->set('event_bat_unit_reference', reset($available_units));
     $event->save();
 
@@ -151,12 +149,14 @@ class AddReservationForm extends FormBase {
     if ($bee_settings['bookable_type'] == 'daily') {
       $start_date = new \DateTime($start_date);
       $end_date = new \DateTime($end_date);
+      $end_date->sub(new \DateInterval('PT1M'));
 
       $available_units_ids = bat_event_get_matching_units($start_date, $end_date, ['bee_daily_available'], $bee_settings['type_id'], 'availability_daily');
     }
     else {
       $start_date = new \DateTime($start_date->format('Y-m-d H:i'));
       $end_date = new \DateTime($end_date->format('Y-m-d H:i'));
+      $end_date->sub(new \DateInterval('PT1M'));
 
       $available_units_ids = bat_event_get_matching_units($start_date, $end_date, ['bee_hourly_available'], $bee_settings['type_id'], 'availability_hourly');
     }
