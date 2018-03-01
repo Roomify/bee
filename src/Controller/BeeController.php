@@ -45,7 +45,7 @@ class BeeController extends ControllerBase implements ContainerInjectionInterfac
       ];
     }
     else {
-      if ($node->get('field_use_open_hours')) {
+      if ($node->get('field_use_open_hours')->value) {
         $business_hours = [];
 
         foreach ($node->get('field_open_hours')->getValue() as $value) {
