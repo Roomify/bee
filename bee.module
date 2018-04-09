@@ -32,11 +32,31 @@ function bee_form_alter(&$form, FormStateInterface $form_state, $form_id) {
         '#type' => 'container',
         'radios' => [
           '#type' => 'radios',
+          '#title' => t('Booking Length'),
           '#options' => [
-            'daily' => t('Daily Bookings'),
-            'hourly' => t('Hourly Bookings'),
+            'daily' => t('Daily Bookings (allows bookings of 1 or more full days)'),
+            'hourly' => t('Flexible Bookings (allows bookings of any length)'),
           ],
           '#default_value' => isset($bee_settings['bookable_type']) ? $bee_settings['bookable_type'] : 'daily',
+          '#disabled' => isset($bee_settings['bookable_type']),
+        ],
+        '#states' => [
+          'visible' => [
+            ':input[name="bee[bookable]"]' => ['checked' => TRUE],
+          ],
+        ],
+      ];
+      $form['bee']['availability'] = [
+        '#type' => 'container',
+        'radios' => [
+          '#type' => 'radios',
+          '#title' => t('Availability'),
+          '#options' => [
+            'available' => t('Generally available (Use for resources that are usually available unless there is a booking. Examples are meeting rooms and equipment)'),
+            'unavailable' => t('Periodically available (Use for resources that are only available on certain days or times. Examples are tours and open mic nights)'),
+          ],
+          '#default_value' => isset($bee_settings['availability']) ? $bee_settings['availability'] : 'available',
+          '#disabled' => isset($bee_settings['availability']),
         ],
         '#states' => [
           'visible' => [
@@ -208,6 +228,7 @@ function bee_node_type_edit_form_submit(array &$form, FormStateInterface $form_s
   $bee_settings = $form_state->getValue('bee');
 
   $bee_settings['bookable_type'] = $bee_settings['bookable_type']['radios'];
+  $bee_settings['availability'] = $bee_settings['availability']['radios'];
 
   if ($bee_settings['bookable']) {
     bee_add_use_open_hours_field('field_use_open_hours', $node_type);
@@ -234,7 +255,12 @@ function bee_node_type_edit_form_submit(array &$form, FormStateInterface $form_s
         ]
       );
 
-      $state = bat_event_load_state_by_machine_name('bee_' . $bee_settings['bookable_type'] . '_available');
+      if ($bee_settings['availability'] == 'available') {
+        $state = bat_event_load_state_by_machine_name('bee_' . $bee_settings['bookable_type'] . '_available');
+      }
+      else {
+        $state = bat_event_load_state_by_machine_name('bee_' . $bee_settings['bookable_type'] . '_not_available');
+      }
       $bat_type->set('field_availability_' . $bee_settings['bookable_type'], $state->id());
 
       bat_type_save($bat_type);
