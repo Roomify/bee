@@ -1,0 +1,13 @@
+{
+  "name": "drupal/bee",
+  "type": "drupal-module",
+  "description": "Bookable Entities Everywhere",
+  "keywords": ["Drupal"],
+  "license": "GPL-2.0+",
+  "homepage": "http://drupal.org/project/bee",
+  "minimum-stability": "dev",
+  "support": {
+    "issues": "http://drupal.org/project/issues/bee",
+    "source": "http://cgit.drupalcode.org/bee"
+  }
+}
