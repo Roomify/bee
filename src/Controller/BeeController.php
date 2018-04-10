@@ -96,7 +96,8 @@ class BeeController extends ControllerBase implements ContainerInjectionInterfac
     ];
 
     return [
-      '#markup' => render($render_array),
+      'form' => \Drupal::formBuilder()->getForm('Drupal\bee\Form\UpdateAvailabilityForm', $node),
+      'calendar' => $render_array,
     ];
   }
 
