@@ -39,6 +39,7 @@ class UpdateAvailabilityForm extends FormBase {
         'available' => t('Available'),
         'unavailable' => t('Unavailable'),
       ],
+      '#prefix' => '<div class="form-row">',
     ];
 
     $form['availability']['start_date'] = [
@@ -53,11 +54,13 @@ class UpdateAvailabilityForm extends FormBase {
       '#title' => t('End'),
       '#date_increment' => 3600,
       '#required' => TRUE,
+      '#suffix' => '</div>',
     ];
 
     $form['availability']['repeat'] = [
       '#type' => 'checkbox',
       '#title' => t('This event repeats'),
+      '#prefix' => '<div class="form-row">',
     ];
 
     $form['availability']['repeat_frequency'] = [
@@ -83,12 +86,15 @@ class UpdateAvailabilityForm extends FormBase {
           ':input[name="repeat"]' => ['checked' => TRUE],
         ],
       ],
+      '#suffix' => '</div>',
     ];
 
     $form['availability']['submit'] = [
       '#type' => 'submit',
       '#value' => t('Update Availability'),
     ];
+
+    $form['#attached']['library'][] = 'bee/bee_form';
 
     return $form;
   }
@@ -219,7 +225,7 @@ class UpdateAvailabilityForm extends FormBase {
 
     $available_units = bat_event_get_matching_units($start_date, $temp_end_date, ['bee_daily_available', 'bee_daily_not_available'], $type_id, 'availability_daily');
 
-    if ($booked_units === FALSE) {
+    if ($available_units) {
       if ($new_state == 'available') {
         $state = bat_event_load_state_by_machine_name('bee_daily_available');
       }
@@ -227,18 +233,22 @@ class UpdateAvailabilityForm extends FormBase {
         $state = bat_event_load_state_by_machine_name('bee_daily_not_available');
       }
 
-      $event = bat_event_create(['type' => 'availability_daily']);
-      $event_dates = [
-        'value' => $start_date->format('Y-m-d\TH:i:00'),
-        'end_value' => $end_date->format('Y-m-d\TH:i:00'),
-      ];
-      $event->set('event_dates', $event_dates);
-      $event->set('event_state_reference', $state->id());
-      $event->set('event_bat_unit_reference', reset($available_units));
-      $event->save();
+      foreach ($available_units as $unit) {
+        $event = bat_event_create(['type' => 'availability_daily']);
+        $event_dates = [
+          'value' => $start_date->format('Y-m-d\TH:i:00'),
+          'end_value' => $end_date->format('Y-m-d\TH:i:00'),
+        ];
+        $event->set('event_dates', $event_dates);
+        $event->set('event_state_reference', $state->id());
+        $event->set('event_bat_unit_reference', $unit);
+        $event->save();
+      }
     }
-    else {
-      drupal_set_message(t('Cannot create event @start @end', [
+
+    foreach ($booked_units as $unit) {
+      drupal_set_message(t('Cannot create event @start @end for @unit', [
+        '@unit' => $unit,
         '@start' => $start_date->format('Y-m-d'),
         '@end' => $end_date->format('Y-m-d'),
       ]), 'warning');
@@ -259,7 +269,7 @@ class UpdateAvailabilityForm extends FormBase {
 
     $available_units = bat_event_get_matching_units($start_date, $temp_end_date, ['bee_hourly_available', 'bee_hourly_not_available'], $type_id, 'availability_hourly');
 
-    if ($booked_units === FALSE) {
+    if ($available_units) {
       if ($new_state == 'available') {
         $state = bat_event_load_state_by_machine_name('bee_hourly_available');
       }
@@ -267,18 +277,22 @@ class UpdateAvailabilityForm extends FormBase {
         $state = bat_event_load_state_by_machine_name('bee_hourly_not_available');
       }
 
-      $event = bat_event_create(['type' => 'availability_hourly']);
-      $event_dates = [
-        'value' => $start_date->format('Y-m-d\TH:i:00'),
-        'end_value' => $end_date->format('Y-m-d\TH:i:00'),
-      ];
-      $event->set('event_dates', $event_dates);
-      $event->set('event_state_reference', $state->id());
-      $event->set('event_bat_unit_reference', reset($available_units));
-      $event->save();
+      foreach ($available_units as $unit) {
+        $event = bat_event_create(['type' => 'availability_hourly']);
+        $event_dates = [
+          'value' => $start_date->format('Y-m-d\TH:i:00'),
+          'end_value' => $end_date->format('Y-m-d\TH:i:00'),
+        ];
+        $event->set('event_dates', $event_dates);
+        $event->set('event_state_reference', $state->id());
+        $event->set('event_bat_unit_reference', $unit);
+        $event->save();
+      }
     }
-    else {
-      drupal_set_message(t('Cannot create event @start @end', [
+
+    foreach ($booked_units as $unit) {
+      drupal_set_message(t('Cannot create event @start @end for @unit', [
+        '@unit' => $unit,
         '@start' => $start_date->format('Y-m-d H:i'),
         '@end' => $end_date->format('Y-m-d H:i'),
       ]), 'warning');
