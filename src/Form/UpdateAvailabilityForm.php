@@ -247,8 +247,9 @@ class UpdateAvailabilityForm extends FormBase {
     }
 
     foreach ($booked_units as $unit) {
-      drupal_set_message(t('Cannot create event @start @end for @unit', [
+      drupal_set_message(t('Could not create event from @start to @end for unit @label with ID: @unit', [
         '@unit' => $unit,
+        '@label' => $unit->label(),
         '@start' => $start_date->format('Y-m-d'),
         '@end' => $end_date->format('Y-m-d'),
       ]), 'warning');
@@ -291,10 +292,11 @@ class UpdateAvailabilityForm extends FormBase {
     }
 
     foreach ($booked_units as $unit) {
-      drupal_set_message(t('Cannot create event @start @end for @unit', [
+      drupal_set_message(t('Could not create event from @start to @end for unit @label with ID: @unit', [
         '@unit' => $unit,
-        '@start' => $start_date->format('Y-m-d H:i'),
-        '@end' => $end_date->format('Y-m-d H:i'),
+        '@label' => $unit->label(),
+        '@start' => $start_date->format('Y-m-d'),
+        '@end' => $end_date->format('Y-m-d'),
       ]), 'warning');
     }
   }
