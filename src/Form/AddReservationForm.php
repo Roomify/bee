@@ -63,11 +63,32 @@ class AddReservationForm extends FormBase {
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
     $values = $form_state->getValues();
+    $node = Node::load($values['node']);
+    $start_date = $values['start_date'];
+    $end_date = $values['end_date'];
 
-    $available_units = $this->getAvailableUnits($values);
-    
-    if (empty($available_units)) {
-      $form_state->setError($form, t('No available units.'));
+    $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+
+    $dates_valid = TRUE;
+
+    if ($bee_settings['bookable_type'] == 'hourly') {
+      // Validate the input dates.
+      if (!$start_date instanceof DrupalDateTime) {
+        $form_state->setErrorByName('start_date', $this->t('The start date is not valid.'));
+        $dates_valid = FALSE;
+      }
+      if (!$end_date instanceof DrupalDateTime) {
+        $form_state->setErrorByName('end_date', $this->t('The end date is not valid.'));
+        $dates_valid = FALSE;
+      }
+    }
+
+    if ($dates_valid) {
+      $available_units = $this->getAvailableUnits($values);
+
+      if (empty($available_units)) {
+        $form_state->setError($form, t('No available units.'));
+      }
     }
   }
 
@@ -118,7 +139,7 @@ class AddReservationForm extends FormBase {
     }
 
     $available_units = $this->getAvailableUnits($values);
-    
+
     $event->set('event_bat_unit_reference', reset($available_units));
     $event->save();
 
