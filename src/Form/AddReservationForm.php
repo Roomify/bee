@@ -160,48 +160,91 @@ class AddReservationForm extends FormBase {
 
     $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
 
-    $units_ids = [];
-    foreach ($node->get('field_availability_' . $bee_settings['bookable_type']) as $unit) {
-      $units_ids[] = $unit->entity->id();
-    }
-
     if ($bee_settings['bookable_type'] == 'daily') {
       $start_date = new \DateTime($start_date);
       $end_date = new \DateTime($end_date);
-
-      $booked_state = bat_event_load_state_by_machine_name('bee_daily_booked');
-
-      $event = bat_event_create(['type' => 'availability_daily']);
-      $event_dates = [
-        'value' => $start_date->format('Y-m-d\TH:i:00'),
-        'end_value' => $end_date->format('Y-m-d\TH:i:00'),
-      ];
-      $event->set('event_dates', $event_dates);
-      $event->set('event_state_reference', $booked_state->id());
     }
     else {
       $start_date = new \DateTime($start_date->format('Y-m-d H:i'));
       $end_date = new \DateTime($end_date->format('Y-m-d H:i'));
-
-      $booked_state = bat_event_load_state_by_machine_name('bee_hourly_booked');
-
-      $event = bat_event_create(['type' => 'availability_hourly']);
-      $event_dates = [
-        'value' => $start_date->format('Y-m-d\TH:i:00'),
-        'end_value' => $end_date->format('Y-m-d\TH:i:00'),
-      ];
-      $event->set('event_dates', $event_dates);
-      $event->set('event_state_reference', $booked_state->id());
     }
 
-    $available_units = $this->getAvailableUnits($values);
+    if ($bee_settings['payment']) {
+      $booking = bat_booking_create([
+        'type' => 'bee',
+        'label' => $node->label(),
+      ]);
+      $booking->set('booking_start_date', $start_date->format('Y-m-d H:i:s'));
+      $booking->set('booking_end_date', $end_date->format('Y-m-d H:i:s'));
+      $booking->save();
 
-    $event->set('event_bat_unit_reference', reset($available_units));
-    $event->save();
+      $product = $node->get('field_product')->entity;
 
-    drupal_set_message(t('Reservation created!'));
+      $stores = $product->getStores();
+      $store = reset($stores);
 
-    $form_state->setRedirect('entity.node.canonical', ['node' => $node->id()]);
+      $variations = $product->getVariations();
+      $product_variation = reset($variations);
+
+      $cart_manager = \Drupal::service('commerce_cart.cart_manager');
+      $cart_provider = \Drupal::service('commerce_cart.cart_provider');
+
+      $cart = $cart_provider->getCart('default', $store);
+      if (!$cart) {
+        $cart = $cart_provider->createCart('default', $store);
+      }
+      else {
+        $cart_manager->emptyCart($cart);
+      }
+
+      $order_item = \Drupal::entityManager()->getStorage('commerce_order_item')->create([
+        'title' => $node->label(),
+        'type' => 'bee',
+        'purchased_entity' => $product_variation->id(),
+        'quantity' => 1,
+        'unit_price' => $product_variation->getPrice(),
+      ]);
+      $order_item->set('field_booking', $booking);
+      $order_item->set('field_node', $node);
+      $order_item->save();
+
+      $cart_manager->addOrderItem($cart, $order_item);
+
+      $form_state->setRedirect('commerce_checkout.form', ['commerce_order' => $cart->id()]);
+    }
+    else {
+      if ($bee_settings['bookable_type'] == 'daily') {
+        $booked_state = bat_event_load_state_by_machine_name('bee_daily_booked');
+
+        $event = bat_event_create(['type' => 'availability_daily']);
+        $event_dates = [
+          'value' => $start_date->format('Y-m-d\TH:i:00'),
+          'end_value' => $end_date->format('Y-m-d\TH:i:00'),
+        ];
+        $event->set('event_dates', $event_dates);
+        $event->set('event_state_reference', $booked_state->id());
+      }
+      else {
+        $booked_state = bat_event_load_state_by_machine_name('bee_hourly_booked');
+
+        $event = bat_event_create(['type' => 'availability_hourly']);
+        $event_dates = [
+          'value' => $start_date->format('Y-m-d\TH:i:00'),
+          'end_value' => $end_date->format('Y-m-d\TH:i:00'),
+        ];
+        $event->set('event_dates', $event_dates);
+        $event->set('event_state_reference', $booked_state->id());
+      }
+
+      $available_units = $this->getAvailableUnits($values);
+
+      $event->set('event_bat_unit_reference', reset($available_units));
+      $event->save();
+
+      drupal_set_message(t('Reservation created!'));
+
+      $form_state->setRedirect('entity.node.canonical', ['node' => $node->id()]);
+    }
   }
 
   /**
