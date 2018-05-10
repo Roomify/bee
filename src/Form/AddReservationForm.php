@@ -135,7 +135,7 @@ class AddReservationForm extends FormBase {
           if ((!$start_date_open_hour || !$end_date_open_hour) ||
               !(($start_date >= $start_date_open_hour['start'] && $start_date <= $start_date_open_hour['end']) &&
                 ($end_date >= $end_date_open_hour['start'] && $end_date <= $end_date_open_hour['end']))) {
-            $form_state->setError($form, t('Dates don\'t respect open hours.'));
+            $form_state->setError($form, t('Please select start and end times within the opening hours.'));
           }
         }
       }
