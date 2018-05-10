@@ -2,6 +2,7 @@
 
 namespace Drupal\bee\Form;
 
+use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\NodeInterface;
@@ -21,6 +22,13 @@ class UpdateAvailabilityForm extends FormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state, NodeInterface $node = NULL) {
     $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+    $today = new \DateTime();
+
+    $tomorrow = clone($today);
+    $tomorrow->modify('+1 day');
+
+    $one_hour_later = clone($today);
+    $one_hour_later->modify('+1 hour');
 
     $form['node'] = [
       '#type' => 'hidden',
@@ -46,12 +54,14 @@ class UpdateAvailabilityForm extends FormBase {
       '#type' => ($bee_settings['bookable_type'] == 'daily') ? 'date' : 'datetime',
       '#title' => t('Start'),
       '#date_increment' => 3600,
+      '#default_value' => ($bee_settings['bookable_type'] == 'daily') ? $today->format('Y-m-d') : new DrupalDateTime($today->format('Y-m-d H:00')),
       '#required' => TRUE,
     ];
 
     $form['availability']['end_date'] = [
       '#type' => ($bee_settings['bookable_type'] == 'daily') ? 'date' : 'datetime',
       '#title' => t('End'),
+      '#default_value' => ($bee_settings['bookable_type'] == 'daily') ? $tomorrow->format('Y-m-d') : new DrupalDateTime($one_hour_later->format('Y-m-d H:00')),
       '#date_increment' => 3600,
       '#required' => TRUE,
       '#suffix' => '</div>',
