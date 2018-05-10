@@ -7,6 +7,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\node\NodeInterface;
 use Drupal\node\Entity\Node;
+use Drupal\office_hours\OfficeHoursDateHelper;
 
 class AddReservationForm extends FormBase {
 
@@ -64,8 +65,12 @@ class AddReservationForm extends FormBase {
   public function validateForm(array &$form, FormStateInterface $form_state) {
     $values = $form_state->getValues();
     $node = Node::load($values['node']);
+
     $start_date = $values['start_date'];
     $end_date = $values['end_date'];
+
+    $date_start_date = $start_date->format('Y-m-d');
+    $date_end_date = $end_date->format('Y-m-d');
 
     $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
 
@@ -84,6 +89,57 @@ class AddReservationForm extends FormBase {
     }
 
     if ($dates_valid) {
+      if ($bee_settings['bookable_type'] == 'hourly') {
+        if ($node->get('field_use_open_hours')->value) {
+          $open_hours = $node->get('field_open_hours')->getValue();
+
+          $start_date_open_hour = FALSE;
+          $end_date_open_hour = FALSE;
+
+          foreach ($open_hours as $open_hour) {
+            if ($open_hour['day'] == $start_date->format('N')) {
+              $starthours = OfficeHoursDateHelper::format($open_hour['starthours'], 'H:i');
+              $endhours = OfficeHoursDateHelper::format($open_hour['endhours'], 'H:i');
+
+              $start_date_open_hour = [
+                'start' => new DrupalDateTime($date_start_date . ' ' . $starthours),
+                'end' => new DrupalDateTime($date_start_date . ' ' . $endhours),
+              ];
+
+              if ($start_date_open_hour['end'] < $start_date_open_hour['start']) {
+                $start_date_open_hour['end']->modify('+1 day');
+
+                if ($start_date_open_hour['end']->format('Y-m-d') == $date_end_date) {
+                  $end_date_open_hour = $start_date_open_hour;
+                }
+              }
+            }
+
+            if ($date_start_date == $date_end_date) {
+              if ($open_hour['day'] == $end_date->format('N')) {
+                $starthours = OfficeHoursDateHelper::format($open_hour['starthours'], 'H:i');
+                $endhours = OfficeHoursDateHelper::format($open_hour['endhours'], 'H:i');
+
+                $end_date_open_hour = [
+                  'start' => new DrupalDateTime($date_end_date . ' ' . $starthours),
+                  'end' => new DrupalDateTime($date_end_date . ' ' . $endhours),
+                ];
+
+                if ($end_date_open_hour['end'] < $end_date_open_hour['start']) {
+                  $end_date_open_hour['end']->modify('+1 day');
+                }
+              }
+            }
+          }
+
+          if ((!$start_date_open_hour || !$end_date_open_hour) ||
+              !(($start_date >= $start_date_open_hour['start'] && $start_date <= $start_date_open_hour['end']) &&
+                ($end_date >= $end_date_open_hour['start'] && $end_date <= $end_date_open_hour['end']))) {
+            $form_state->setError($form, t('Dates don\'t respect open hours.'));
+          }
+        }
+      }
+
       $available_units = $this->getAvailableUnits($values);
 
       if (empty($available_units)) {
