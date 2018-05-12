@@ -86,7 +86,13 @@ function bee_form_alter(&$form, FormStateInterface $form_state, $form_id) {
       if (!(\Drupal::moduleHandler()->moduleExists('commerce_checkout') &&
             \Drupal::moduleHandler()->moduleExists('commerce_payment'))) {
         $form['bee']['payment']['#disabled'] = TRUE;
-        $form['bee']['payment']['#description'] = t('To enable payments for bookings, install and enable the Drupal Commerce checkout and payment modules.');
+        $form['bee']['payment']['#description'] = t('To enable payments for bookings, install and enable the Drupal Commerce checkout and payment modules and configure a Commerce Store.');
+      }
+      elseif (\Drupal::moduleHandler()->moduleExists('commerce')) {
+        if (empty(Store::loadMultiple())) {
+          $form['bee']['payment']['#disabled'] = TRUE;
+          $form['bee']['payment']['#description'] = t('To enable payments for bookings, install and enable the Drupal Commerce checkout and payment modules and configure a Commerce Store.');
+        }
       }
 
       if (isset($bee_settings['type_id'])) {
@@ -164,30 +170,21 @@ function bee_form_alter(&$form, FormStateInterface $form_state, $form_id) {
           $form['field_price']['#title'] = t('Price per day');
 
           $form['field_price_frequency']['#access'] = FALSE;
+
+          $form['field_price']['#prefix'] = '<div class="container-inline">';
+          $form['field_price']['#suffix'] = '</div>';
         }
         else {
           $form['field_price']['#group'] = 'payments';
-          $form['field_price']['widget'][0]['#title'] = t('Price per');
+          $form['field_price']['widget'][0]['#title'] = t('Price');
 
           $form['field_price_frequency']['#group'] = 'payments';
           $form['field_price_frequency']['widget']['#default_value'] = 'hour';
-          $form['field_price_frequency']['widget']['#title'] = '';
+          $form['field_price_frequency']['widget']['#title'] = t('per');
           unset($form['field_price_frequency']['widget']['#options']['_none']);
 
-          /*$form['bee']['payments']['price'] = [
-            '#type' => 'commerce_number',
-            '#title' => t('Price per'),
-            '#default_value' => '',
-          ];*/
-
-          /*$form['bee']['payments']['price_frequency'] = [
-            '#type' => 'select',
-            '#options' => [
-              'hour' => t('Hour'),
-              'minute' => t('Minute'),
-            ],
-            '#default_value' => 'hour',
-          ];*/
+          $form['field_price']['#prefix'] = '<div class="container-inline">';
+          $form['field_price_frequency']['#suffix'] = '</div>';
         }
       }
       else {
@@ -347,6 +344,23 @@ function bee_node_type_edit_form_submit(array &$form, FormStateInterface $form_s
       bee_add_product_reference_field('field_product', $node_type);
       bee_add_price_field('field_price', $node_type);
       bee_add_price_frequency_field('field_price_frequency', $node_type);
+
+      if (!$form['bee']['payment']['#default_value']) {
+        $node_storage = \Drupal::entityManager()->getStorage('node');
+
+        $query = \Drupal::entityQuery('node')
+          ->condition('type', $node_type->id());
+
+        $nids = $query->execute();
+        foreach ($node_storage->loadMultiple($nids) as $node) {
+          if (!$node->get('field_product')->entity) {
+            $product = bee_create_node_product($node);
+
+            $node->set('field_product', $product->id());
+            $node->save();
+          }
+        }
+      }
     }
 
     \Drupal::configFactory()->getEditable('node.type.' . $node_type->id())->set('bee', $bee_settings)->save();
@@ -392,22 +406,7 @@ function bee_node_insert(EntityInterface $node) {
 
   if (isset($bee_settings['bookable']) && $bee_settings['bookable']) {
     if ($bee_settings['payment']) {
-      $variation = ProductVariation::create([
-        'type' => 'bee',
-        'sku' => 'bee_' . $node->bundle() . '_' . $node->id(),
-        'price' => [
-          'number' => 0,
-          'currency_code' => 'USD',
-        ],
-      ]);
-      $variation->save();
-      $product = Product::create([
-        'type' => 'bee_' . $node->bundle(),
-        'title' => $node->label(),
-        'variations' => [$variation],
-        'stores' => Store::loadMultiple(),
-      ]);
-      $product->save();
+      $product = bee_create_node_product($node);
 
       $node->set('field_product', $product->id());
     }
@@ -1095,4 +1094,25 @@ function bee_create_bee_booking_type() {
     ]);
     $booking_type->save();
   }
+}
+
+function bee_create_node_product($node) {
+  $variation = ProductVariation::create([
+    'type' => 'bee',
+    'sku' => 'bee_' . $node->bundle() . '_' . $node->id(),
+    'price' => [
+      'number' => 0,
+      'currency_code' => 'USD',
+    ],
+  ]);
+  $variation->save();
+  $product = Product::create([
+    'type' => 'bee_' . $node->bundle(),
+    'title' => $node->label(),
+    'variations' => [$variation],
+    'stores' => Store::loadMultiple(),
+  ]);
+  $product->save();
+
+  return $product;
 }
