@@ -65,14 +65,18 @@ class AddReservationForm extends FormBase {
   public function validateForm(array &$form, FormStateInterface $form_state) {
     $values = $form_state->getValues();
     $node = Node::load($values['node']);
+    $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
 
     $start_date = $values['start_date'];
     $end_date = $values['end_date'];
 
+    if ($bee_settings['bookable_type'] == 'daily') {
+      $start_date = new \DateTime($start_date);
+      $end_date = new \DateTime($end_date);
+    }
+
     $date_start_date = $start_date->format('Y-m-d');
     $date_end_date = $end_date->format('Y-m-d');
-
-    $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
 
     $dates_valid = TRUE;
 
