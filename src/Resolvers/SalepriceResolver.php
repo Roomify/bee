@@ -39,6 +39,8 @@ class SalepriceResolver implements PriceResolverInterface {
             $nids = $query->execute();
             $node = Node::load(reset($nids));
 
+            $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+
             $booking = $order_item->get('field_booking')->entity;
 
             $start_date = new \DateTime($booking->get('booking_start_date')->value);
@@ -55,15 +57,21 @@ class SalepriceResolver implements PriceResolverInterface {
             $base_price = $node->get('field_price')->number;
             $currency_code = $node->get('field_price')->currency_code;
 
-            $field_price_frequency = $node->get('field_price_frequency')->value;
-
-            if ($field_price_frequency == 'hour') {
-              $hours = ($interval->days * 24) + $interval->h;
-              $amount = number_format($base_price * $hours, 2);
+            if ($bee_settings['bookable_type'] == 'daily') {
+              $days = $interval->days;
+              $amount = number_format($base_price * $days, 2, '.', '');
             }
             else {
-              $minutes = ($interval->days * 24 * 60) + ($interval->h * 60) + $interval->i;
-              $amount = number_format($base_price * $minutes, 2);
+              $field_price_frequency = $node->get('field_price_frequency')->value;
+
+              if ($field_price_frequency == 'hour') {
+                $hours = ($interval->days * 24) + $interval->h;
+                $amount = number_format($base_price * $hours, 2, '.', '');
+              }
+              else {
+                $minutes = ($interval->days * 24 * 60) + ($interval->h * 60) + $interval->i;
+                $amount = number_format($base_price * $minutes, 2, '.', '');
+              }
             }
 
             $price = new Price($amount, $currency_code);
