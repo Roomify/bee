@@ -167,7 +167,7 @@ function bee_form_alter(&$form, FormStateInterface $form_state, $form_id) {
 
         if ($bee_settings['bookable_type'] == 'daily') {
           $form['field_price']['#group'] = 'payments';
-          $form['field_price']['#title'] = t('Price per day');
+          $form['field_price']['widget'][0]['#title'] = t('Price per day');
 
           $form['field_price_frequency']['#access'] = FALSE;
 
@@ -188,7 +188,7 @@ function bee_form_alter(&$form, FormStateInterface $form_state, $form_id) {
         }
       }
       else {
-        $form['field_price ']['#access'] = FALSE;
+        $form['field_price']['#access'] = FALSE;
         $form['field_price_frequency']['#access'] = FALSE;
       }
 
@@ -219,6 +219,14 @@ function bee_form_alter(&$form, FormStateInterface $form_state, $form_id) {
     }
   }
   elseif (preg_match('/^node_.*_form$/', $form_id)) {
+    if (isset($form['field_price'])) {
+      $form['field_price']['#access'] = FALSE;
+    }
+
+    if (isset($form['field_price_frequency'])) {
+      $form['field_price_frequency']['#access'] = FALSE;
+    }
+
     if (isset($form['field_use_open_hours'])) {
       $form['field_use_open_hours']['#access'] = FALSE;
     }
