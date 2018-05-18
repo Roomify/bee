@@ -9,3 +9,12 @@ services:
     arguments: ['@entity.manager']
     tags:
       - { name: access_check, applies_to: _bee_add_reservation_access }
+  bee.saleprice_resolver:
+    class: Drupal\bee\Resolvers\SalepriceResolver
+    arguments: ['@request_stack']
+    tags:
+      - { name: commerce_price.price_resolver, priority: 600 }
+  bee.order_subscriber:
+    class: Drupal\bee\EventSubscriber\OrderEventSubscriber
+    tags:
+      - { name: event_subscriber }
