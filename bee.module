@@ -1105,12 +1105,15 @@ function bee_create_bee_booking_type() {
 }
 
 function bee_create_node_product($node) {
+  $store_storage = \Drupal::entityTypeManager()->getStorage('commerce_store');
+  $default_store = $store_storage->loadDefault();
+
   $variation = ProductVariation::create([
     'type' => 'bee',
     'sku' => 'bee_' . $node->bundle() . '_' . $node->id(),
     'price' => [
       'number' => 0,
-      'currency_code' => 'USD',
+      'currency_code' => $default_store->getDefaultCurrencyCode(),
     ],
   ]);
   $variation->save();
