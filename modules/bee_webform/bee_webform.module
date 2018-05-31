@@ -1,6 +1,8 @@
 <?php
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\node\Entity\Node;
 
 /**
@@ -22,6 +24,8 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
       $value = $form_state->getValue($id);
 
       if ($value['content_type'] && $value['start_date'] && $value['end_date'] && $value['capacity']) {
+        $webform_submission = $form_state->getFormObject()->getEntity();
+
         $start_date = $value['start_date'];
         $end_date = $value['end_date'];
 
@@ -94,6 +98,7 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
               $event->set('event_state_reference', $booked_state->id());
             }
 
+            $event->set('field_event_webform_submission', $webform_submission->id());
             $event->set('event_bat_unit_reference', $unit);
             $event->save();
 
@@ -142,4 +147,42 @@ function bee_webform_get_available_units($values) {
   }
 
   return array_intersect($units_ids, $available_units_ids);
+}
+
+/**
+ * @param $field_name
+ * @param $event_type
+ */
+function bee_webform_add_event_webform_reference_field($field_name, $event_type) {
+  $field_storage = FieldStorageConfig::loadByName('bat_event', $field_name);
+  $field = FieldConfig::loadByName('bat_event', $event_type, $field_name);
+
+  if (empty($field_storage)) {
+    $field_storage = FieldStorageConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => 'bat_event',
+      'type' => 'entity_reference',
+      'cardinality' => 1,
+      'locked' => 1,
+      'settings' => [
+        'target_type' => 'webform_submission',
+      ],
+    ]);
+    $field_storage->save();
+  }
+
+  if (empty($field)) {
+    $field = FieldConfig::create([
+      'field_storage' => $field_storage,
+      'entity_type' => 'bat_event',
+      'label' => 'Webform',
+      'bundle' => $event_type,
+      'required' => FALSE,
+      'settings' => [
+        'handler' => 'default',
+        'handler_settings' => [],
+      ],
+    ]);
+    $field->save();
+  }
 }
