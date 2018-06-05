@@ -14,6 +14,9 @@ use Drupal\webform\Plugin\WebformElement\WebformCompositeBase;
  *   label = @Translation("BEE reservation form"),
  *   description = @Translation("BEE reservation form."),
  *   category = @Translation("Advanced elements"),
+ *   multiline = TRUE,
+ *   composite = TRUE,
+ *   states_wrapper = TRUE,
  * )
  */
 class WebformBeeReservationForm extends WebformCompositeBase {

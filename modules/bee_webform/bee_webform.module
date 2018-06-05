@@ -67,16 +67,13 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
 
           if ($bee_settings['bookable_type'] == 'daily') {
             $booked_state = bat_event_load_state_by_machine_name('bee_daily_booked');
-
-            $start_date = new \DateTime($start_date);
-            $end_date = new \DateTime($end_date);
           }
           else {
             $booked_state = bat_event_load_state_by_machine_name('bee_hourly_booked');
-
-            $start_date = new \DateTime($start_date);
-            $end_date = new \DateTime($end_date);
           }
+
+          $start_date = new \DateTime($start_date);
+          $end_date = new \DateTime($end_date);
 
           foreach ($node_available_units as $unit) {
             if ($bee_settings['bookable_type'] == 'daily') {

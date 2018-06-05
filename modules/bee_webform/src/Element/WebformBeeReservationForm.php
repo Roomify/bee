@@ -46,6 +46,7 @@ class WebformBeeReservationForm extends WebformCompositeBase {
       else {
         $elements['content_type'] = [
           '#type' => 'hidden',
+          '#title' => t('Content type'),
           '#value' => key($content_type_options),
         ];
       }
