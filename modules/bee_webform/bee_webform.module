@@ -49,8 +49,8 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
               $available_units = [$node->id() => $node_available_units];
               break;
             }
-            elseif (count($node_available_units) >= $value['capacity']) {
-              $available_units = [$node->id() => $node_available_units];
+            elseif (count($node_available_units) > $value['capacity']) {
+              $available_units[$node->id()] = $node_available_units;
               $max_capacity = TRUE;
             }
             elseif (!$max_capacity) {
@@ -59,8 +59,14 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
           }
         }
 
+        uasort($available_units, function($a, $b) { return count($a) - count($b); });
+
         $index = 0;
         foreach ($available_units as $nid => $node_available_units) {
+          if ($max_capacity && count($node_available_units) < $value['capacity']) {
+            continue;
+          }
+
           $node = Node::load($nid);
 
           $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
