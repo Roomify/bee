@@ -11,7 +11,8 @@ use Drupal\node\Entity\Node;
  */
 function bee_webform_form_alter(&$form, FormStateInterface $form_state, $form_id) {
   if (isset($form['#webform_id'])) {
-    foreach ($form['elements'] as $element) {
+    $webform = \Drupal\webform\Entity\Webform::load($form['#webform_id']);
+    foreach ($webform->getElementsDecodedAndFlattened() as $element) {
       if ($element['#type'] == 'webform_bee_reservation_form') {
         $form['actions']['submit']['#submit'][] = 'bee_webform_form_submit';
       }
