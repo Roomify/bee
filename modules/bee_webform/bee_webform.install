@@ -1,0 +1,19 @@
+<?php
+
+/**
+ * Implements hook_install().
+ */
+function bee_webform_install() {
+  bee_webform_add_event_webform_reference_field('field_event_webform_submission', 'availability_daily');
+  bee_webform_add_event_webform_reference_field('field_event_webform_submission', 'availability_hourly');
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function bee_webform_uninstall() {
+  Drupal::configFactory()->getEditable('field.field.bat_event.availability_daily.field_event_webform_submission')->delete();
+  Drupal::configFactory()->getEditable('field.field.bat_event.availability_hourly.field_event_webform_submission')->delete();
+
+  Drupal::configFactory()->getEditable('field.storage.bat_event.field_event_webform_submission')->delete();
+}

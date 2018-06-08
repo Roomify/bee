@@ -1,0 +1,249 @@
+<?php
+
+use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\node\Entity\Node;
+
+/**
+ * Implements hook_form_alter().
+ */
+function bee_webform_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  if (isset($form['#webform_id'])) {
+    foreach ($form['elements'] as $element) {
+      if ($element['#type'] == 'webform_bee_reservation_form') {
+        $form['actions']['submit']['#submit'][] = 'bee_webform_form_submit';
+      }
+    }
+  }
+}
+
+function bee_webform_form_submit($form, FormStateInterface $form_state) {
+  foreach ($form['elements'] as $id => $element) {
+    if ($element['#type'] == 'webform_bee_reservation_form') {
+      $value = $form_state->getValue($id);
+      $webform = \Drupal\webform\Entity\Webform::load($form['#webform_id']);
+
+      if ($value['content_type'] && $value['start_date'] && $value['end_date'] && $value['capacity']) {
+        $webform_submission = $form_state->getFormObject()->getEntity();
+
+        $start_date = $value['start_date'];
+        $end_date = $value['end_date'];
+
+        $max_capacity = FALSE;
+
+        $available_units = [];
+
+        $query = \Drupal::entityQuery('node')
+          ->condition('type', $value['content_type']);
+
+        $nids = $query->execute();
+        foreach (Node::loadMultiple($nids) as $node) {
+          $values = [
+            'node' => $node,
+            'start_date' => $start_date,
+            'end_date' => $end_date,
+          ];
+
+          if ($node_available_units = bee_webform_get_available_units($values)) {
+            if (count($node_available_units) == $value['capacity']) {
+              $available_units = [$node->id() => $node_available_units];
+              break;
+            }
+            elseif (count($node_available_units) > $value['capacity']) {
+              $available_units[$node->id()] = $node_available_units;
+              $max_capacity = TRUE;
+            }
+            elseif (!$max_capacity) {
+              $available_units[$node->id()] = $node_available_units;
+            }
+          }
+        }
+
+        uasort($available_units, function($a, $b) { return count($a) - count($b); });
+
+        $index = 0;
+        $events_created = [];
+
+        foreach ($available_units as $nid => $node_available_units) {
+          if ($max_capacity && count($node_available_units) < $value['capacity']) {
+            continue;
+          }
+
+          $node = Node::load($nid);
+
+          $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+
+          if ($bee_settings['bookable_type'] == 'daily') {
+            $booked_state = bat_event_load_state_by_machine_name('bee_daily_booked');
+          }
+          else {
+            $booked_state = bat_event_load_state_by_machine_name('bee_hourly_booked');
+          }
+
+          $start_date = new \DateTime($start_date);
+          $end_date = new \DateTime($end_date);
+
+          foreach ($node_available_units as $unit) {
+            if ($bee_settings['bookable_type'] == 'daily') {
+              $event = bat_event_create(['type' => 'availability_daily']);
+              $event_dates = [
+                'value' => $start_date->format('Y-m-d\TH:i:00'),
+                'end_value' => $end_date->format('Y-m-d\TH:i:00'),
+              ];
+              $event->set('event_dates', $event_dates);
+              $event->set('event_state_reference', $booked_state->id());
+            }
+            else {
+              $event = bat_event_create(['type' => 'availability_hourly']);
+              $event_dates = [
+                'value' => $start_date->format('Y-m-d\TH:i:00'),
+                'end_value' => $end_date->format('Y-m-d\TH:i:00'),
+              ];
+              $event->set('event_dates', $event_dates);
+              $event->set('event_state_reference', $booked_state->id());
+            }
+
+            $event->set('field_event_webform_submission', $webform_submission->id());
+            $event->set('event_bat_unit_reference', $unit);
+            $event->save();
+
+            $events_created[] = $event->id();
+
+            if (++$index == $value['capacity']) {
+              break 2;
+            }
+          }
+        }
+
+        // Send email with summary of any allocations made.
+        if (count($events_created) == 0) {
+          $message = t("No nodes with sufficient capacity were found, therefore no reservations were created.\nTo view the submission, please go to @submission", ['@submission' => $webform_submission->url('canonical', ['absolute' => TRUE])]);
+        }
+        else {
+          $events = bat_event_load_multiple($events_created);
+          $event_links = [];
+          foreach ($events as $event) {
+            $event_links[] = $event->url('canonical', ['absolute' => TRUE]);
+          }
+
+          $message = t("The following BEE reservations were created for a new webform submission:\n\n@event_links\n\nTo view the submission, please go to @submission", ['@event_links' => implode("\n", $event_links), '@submission' => $webform_submission->url('canonical', ['absolute' => TRUE])]);
+        }
+        $mailManager = \Drupal::service('plugin.manager.mail');
+
+        $module = 'bee_webform';
+        $key = 'bee_webform_submission';
+        $to = $webform->getOwner()->getEmail();
+        $params['webform_title'] = $webform->get('title');
+        $params['message'] = $message;
+        $langcode = $webform->getOwner()->getPreferredLangcode();
+        $send = TRUE;
+
+        $result = $mailManager->mail($module, $key, $to, $langcode, $params, NULL, $send);
+        if ($result['result'] !== true) {
+          $message = t('There was a problem sending your email notification to @email for creating a webform BEE reservation.', array('@email' => $to));
+          drupal_set_message($message, 'error');
+          \Drupal::logger('bee_webform')->error($message);
+          return;
+        }
+
+        $message = t('An email notification has been sent to @email for creating a webform BEE reservation.', array('@email' => $to));
+        drupal_set_message($message);
+        \Drupal::logger('bee_webform')->notice($message);
+      }
+    }
+  }
+}
+
+/**
+ * Get available Units.
+ *
+ * @param $values
+ *
+ * return array
+ */
+function bee_webform_get_available_units($values) {
+  $node = $values['node'];
+  $start_date = $values['start_date'];
+  $end_date = $values['end_date'];
+
+  $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+
+  $units_ids = [];
+  foreach ($node->get('field_availability_' . $bee_settings['bookable_type']) as $unit) {
+    $units_ids[] = $unit->entity->id();
+  }
+
+  if ($bee_settings['bookable_type'] == 'daily') {
+    $start_date = new \DateTime($start_date);
+    $end_date = new \DateTime($end_date);
+    $end_date->sub(new \DateInterval('PT1M'));
+
+    $available_units_ids = bat_event_get_matching_units($start_date, $end_date, ['bee_daily_available'], $bee_settings['type_id'], 'availability_daily');
+  }
+  else {
+    $start_date = new \DateTime($start_date);
+    $end_date = new \DateTime($end_date);
+    $end_date->sub(new \DateInterval('PT1M'));
+
+    $available_units_ids = bat_event_get_matching_units($start_date, $end_date, ['bee_hourly_available'], $bee_settings['type_id'], 'availability_hourly');
+  }
+
+  return array_intersect($units_ids, $available_units_ids);
+}
+
+/**
+ * @param $field_name
+ * @param $event_type
+ */
+function bee_webform_add_event_webform_reference_field($field_name, $event_type) {
+  $field_storage = FieldStorageConfig::loadByName('bat_event', $field_name);
+  $field = FieldConfig::loadByName('bat_event', $event_type, $field_name);
+
+  if (empty($field_storage)) {
+    $field_storage = FieldStorageConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => 'bat_event',
+      'type' => 'entity_reference',
+      'cardinality' => 1,
+      'locked' => 1,
+      'settings' => [
+        'target_type' => 'webform_submission',
+      ],
+    ]);
+    $field_storage->save();
+  }
+
+  if (empty($field)) {
+    $field = FieldConfig::create([
+      'field_storage' => $field_storage,
+      'entity_type' => 'bat_event',
+      'label' => 'Webform',
+      'bundle' => $event_type,
+      'required' => FALSE,
+      'settings' => [
+        'handler' => 'default',
+        'handler_settings' => [],
+      ],
+    ]);
+    $field->save();
+  }
+}
+
+/**
+ * Implements hook_mail().
+ */
+function bee_webform_mail($key, &$message, $params) {
+  $options = array(
+    'langcode' => $message['langcode'],
+  );
+
+  switch ($key) {
+    case 'bee_webform_submission':
+      $message['from'] = \Drupal::config('system.site')->get('mail');
+      $message['subject'] = t('Reservations created from webform @title', array('@title' => $params['webform_title']), $options);
+      $message['body'][] = SafeMarkup::checkPlain($params['message']);
+      break;
+  }
+}
