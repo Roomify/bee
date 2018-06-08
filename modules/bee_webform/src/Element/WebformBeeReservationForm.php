@@ -40,6 +40,7 @@ class WebformBeeReservationForm extends WebformCompositeBase {
         $elements['content_type'] = [
           '#type' => 'radios',
           '#title' => t('Content type'),
+          '#required' => TRUE,
           '#options' => $content_type_options,
         ];
       }
