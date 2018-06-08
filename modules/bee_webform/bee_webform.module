@@ -1,5 +1,6 @@
 <?php
 
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -22,6 +23,7 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
   foreach ($form['elements'] as $id => $element) {
     if ($element['#type'] == 'webform_bee_reservation_form') {
       $value = $form_state->getValue($id);
+      $webform = \Drupal\webform\Entity\Webform::load($form['#webform_id']);
 
       if ($value['content_type'] && $value['start_date'] && $value['end_date'] && $value['capacity']) {
         $webform_submission = $form_state->getFormObject()->getEntity();
@@ -62,6 +64,8 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
         uasort($available_units, function($a, $b) { return count($a) - count($b); });
 
         $index = 0;
+        $events_created = [];
+
         foreach ($available_units as $nid => $node_available_units) {
           if ($max_capacity && count($node_available_units) < $value['capacity']) {
             continue;
@@ -105,11 +109,48 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
             $event->set('event_bat_unit_reference', $unit);
             $event->save();
 
+            $events_created[] = $event->id();
+
             if (++$index == $value['capacity']) {
               break 2;
             }
           }
         }
+
+        // Send email with summary of any allocations made.
+        if (count($events_created) == 0) {
+          $message = t("No nodes with sufficient capacity were found, therefore no reservations were created.\nTo view the submission, please go to @submission", ['@submission' => $webform_submission->url('canonical', ['absolute' => TRUE])]);
+        }
+        else {
+          $events = bat_event_load_multiple($events_created);
+          $event_links = [];
+          foreach ($events as $event) {
+            $event_links[] = $event->url('canonical', ['absolute' => TRUE]);
+          }
+
+          $message = t("The following BEE reservations were created for a new webform submission:\n\n@event_links\n\nTo view the submission, please go to @submission", ['@event_links' => implode("\n", $event_links), '@submission' => $webform_submission->url('canonical', ['absolute' => TRUE])]);
+        }
+        $mailManager = \Drupal::service('plugin.manager.mail');
+
+        $module = 'bee_webform';
+        $key = 'bee_webform_submission';
+        $to = $webform->getOwner()->getEmail();
+        $params['webform_title'] = $webform->get('title');
+        $params['message'] = $message;
+        $langcode = $webform->getOwner()->getPreferredLangcode();
+        $send = TRUE;
+
+        $result = $mailManager->mail($module, $key, $to, $langcode, $params, NULL, $send);
+        if ($result['result'] !== true) {
+          $message = t('There was a problem sending your email notification to @email for creating a webform BEE reservation.', array('@email' => $to));
+          drupal_set_message($message, 'error');
+          \Drupal::logger('bee_webform')->error($message);
+          return;
+        }
+
+        $message = t('An email notification has been sent to @email for creating a webform BEE reservation.', array('@email' => $to));
+        drupal_set_message($message);
+        \Drupal::logger('bee_webform')->notice($message);
       }
     }
   }
@@ -187,5 +228,22 @@ function bee_webform_add_event_webform_reference_field($field_name, $event_type)
       ],
     ]);
     $field->save();
+  }
+}
+
+/**
+ * Implements hook_mail().
+ */
+function bee_webform_mail($key, &$message, $params) {
+  $options = array(
+    'langcode' => $message['langcode'],
+  );
+
+  switch ($key) {
+    case 'bee_webform_submission':
+      $message['from'] = \Drupal::config('system.site')->get('mail');
+      $message['subject'] = t('Reservations created from webform @title', array('@title' => $params['webform_title']), $options);
+      $message['body'][] = SafeMarkup::checkPlain($params['message']);
+      break;
   }
 }
