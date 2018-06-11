@@ -445,8 +445,10 @@ function bee_node_delete(EntityInterface $node) {
       bat_unit_delete($bat_unit);
     }
 
-    if ($product = $node->get('field_product')->entity) {
-      $product->delete();
+    if ($bee_settings['payment']) {
+      if ($product = $node->get('field_product')->entity) {
+        $product->delete();
+      }
     }
   }
 }
