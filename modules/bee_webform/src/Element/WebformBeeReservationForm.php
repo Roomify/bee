@@ -21,49 +21,51 @@ class WebformBeeReservationForm extends WebformCompositeBase {
   public static function getCompositeElements(array $element) {
     $elements = [];
 
-    $bookable_type = FALSE;
-    $content_type_options = [];
+    if (isset($element['#content_types'])) {
+      $bookable_type = FALSE;
+      $content_type_options = [];
 
-    foreach (array_filter($element['#content_types']) as $node_type) {
-      $node_type = NodeType::load($node_type);
-      $content_type_options[$node_type->id()] = $node_type->label();
+      foreach (array_filter($element['#content_types']) as $node_type) {
+        $node_type = NodeType::load($node_type);
+        $content_type_options[$node_type->id()] = $node_type->label();
 
-      $bee_settings = \Drupal::config('node.type.' . $node_type->id())->get('bee');
+        $bee_settings = \Drupal::config('node.type.' . $node_type->id())->get('bee');
 
-      if (isset($bee_settings['bookable_type'])) {
-        $bookable_type = $bee_settings['bookable_type'];
+        if (isset($bee_settings['bookable_type'])) {
+          $bookable_type = $bee_settings['bookable_type'];
+        }
       }
-    }
 
-    if ($content_type_options) {
-      if (count($content_type_options) > 1) {
-        $elements['content_type'] = [
-          '#type' => 'radios',
-          '#title' => t('Content type'),
-          '#required' => TRUE,
-          '#options' => $content_type_options,
+      if ($content_type_options) {
+        if (count($content_type_options) > 1) {
+          $elements['content_type'] = [
+            '#type' => 'radios',
+            '#title' => t('Content type'),
+            '#required' => TRUE,
+            '#options' => $content_type_options,
+          ];
+        }
+        else {
+          $elements['content_type'] = [
+            '#type' => 'hidden',
+            '#title' => t('Content type'),
+            '#value' => key($content_type_options),
+          ];
+        }
+
+        $elements['start_date'] = [
+          '#type' => ($bookable_type == 'daily') ? 'date' : 'datetime',
+          '#title' => t('Start date'),
+        ];
+        $elements['end_date'] = [
+          '#type' => ($bookable_type == 'daily') ? 'date' : 'datetime',
+          '#title' => t('End date'),
+        ];
+        $elements['capacity'] = [
+          '#type' => 'number',
+          '#title' => t('Capacity'),
         ];
       }
-      else {
-        $elements['content_type'] = [
-          '#type' => 'hidden',
-          '#title' => t('Content type'),
-          '#value' => key($content_type_options),
-        ];
-      }
-
-      $elements['start_date'] = [
-        '#type' => ($bookable_type == 'daily') ? 'date' : 'datetime',
-        '#title' => t('Start date'),
-      ];
-      $elements['end_date'] = [
-        '#type' => ($bookable_type == 'daily') ? 'date' : 'datetime',
-        '#title' => t('End date'),
-      ];
-      $elements['capacity'] = [
-        '#type' => 'number',
-        '#title' => t('Capacity'),
-      ];
     }
 
     return $elements;
