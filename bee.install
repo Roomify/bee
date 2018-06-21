@@ -88,30 +88,28 @@ function bee_install() {
  */
 function bee_uninstall() {
   $node_types = \Drupal::entityTypeManager()->getStorage('node_type')->loadMultiple();
+  $entityFieldManager = Drupal::service('entity_field.manager');
 
   foreach ($node_types as $node_type) {
+    $field_names = [
+      'field_availability_daily',
+      'field_availability_hourly',
+      'field_open_hours',
+      'field_use_open_hours',
+      'field_product',
+      'field_price',
+      'field_price_frequency',
+    ];
+    $fields = $entityFieldManager->getFieldDefinitions('node', $node_type->id());
+
+    foreach ($field_names as $field_name) {
+      if (isset($fields[$field_name])) {
+        $fields[$field_name]->delete();
+      }
+    }
+
     Drupal::configFactory()->getEditable('node.type.' . $node_type->id())->clear('bee')->save();
-
-    Drupal::configFactory()->getEditable('field.field.node.' . $node_type->id() . '.field_availability_daily')->delete();
-    Drupal::configFactory()->getEditable('field.field.node.' . $node_type->id() . '.field_availability_hourly')->delete();
-
-    Drupal::configFactory()->getEditable('field.field.node.' . $node_type->id() . '.field_open_hours')->delete();
-    Drupal::configFactory()->getEditable('field.field.node.' . $node_type->id() . '.field_use_open_hours')->delete();
-
-    Drupal::configFactory()->getEditable('field.field.node.' . $node_type->id() . '.field_product')->delete();
-    Drupal::configFactory()->getEditable('field.field.node.' . $node_type->id() . '.field_price')->delete();
-    Drupal::configFactory()->getEditable('field.field.node.' . $node_type->id() . '.field_price_frequency')->delete();
   }
-
-  Drupal::configFactory()->getEditable('field.storage.node.field_availability_daily')->delete();
-  Drupal::configFactory()->getEditable('field.storage.node.field_availability_hourly')->delete();
-
-  Drupal::configFactory()->getEditable('field.storage.node.field_open_hours')->delete();
-  Drupal::configFactory()->getEditable('field.storage.node.field_use_open_hours')->delete();
-
-  Drupal::configFactory()->getEditable('field.storage.node.field_product')->delete();
-  Drupal::configFactory()->getEditable('field.storage.node.field_price')->delete();
-  Drupal::configFactory()->getEditable('field.storage.node.field_price_frequency')->delete();
 
   $states = [
     'bee_daily_available',
