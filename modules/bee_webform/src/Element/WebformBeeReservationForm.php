@@ -91,7 +91,16 @@ class WebformBeeReservationForm extends WebformCompositeBase {
           'end_date' => $value['end_date'],
         ];
 
-        $available_units += count(bee_webform_get_available_units($values));
+        $units = bee_webform_get_available_units($values);
+
+        // Allow other modules to alter the available units for this node.
+        $context = [
+          'form_values' => $value,
+          'node' => $node,
+        ];
+        \Drupal::moduleHandler()->alter('bee_webform_available_units', $units, $context);
+
+        $available_units += count($units);
       }
 
       if ($available_units < $value['capacity']) {

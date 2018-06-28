@@ -55,6 +55,14 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
       ];
 
       if ($node_available_units = bee_webform_get_available_units($values)) {
+
+        // Allow other modules to alter the available units for this node.
+        $context = [
+          'form_values' => $value,
+          'node' => $node,
+        ];
+        \Drupal::moduleHandler()->alter('bee_webform_available_units', $node_available_units, $context);
+
         if (count($node_available_units) == $value['capacity']) {
           $available_units = [$node->id() => $node_available_units];
           break;
