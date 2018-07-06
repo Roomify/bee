@@ -79,29 +79,8 @@ class WebformBeeReservationForm extends WebformCompositeBase {
 
     if ($value['content_type'] && $value['start_date'] && $value['end_date'] && $value['capacity']) {
       $available_units = 0;
-
-      $query = \Drupal::entityQuery('node')
-        ->condition('type', $value['content_type']);
-
-      $nids = $query->execute();
-      foreach (Node::loadMultiple($nids) as $node) {
-        $values = [
-          'node' => $node,
-          'start_date' => $value['start_date'],
-          'end_date' => $value['end_date'],
-        ];
-
-        $units = bee_webform_get_available_units($values);
-
-        // Allow other modules to alter the available units for this node.
-        $context = [
-          'form_values' => $value,
-          'node' => $node,
-        ];
-        \Drupal::moduleHandler()->alter('bee_webform_available_units', $units, $context);
-
-        $available_units += count($units);
-      }
+      $units = bee_webform_get_available_units($value);
+      $available_units += count($units);
 
       if ($available_units < $value['capacity']) {
         $form_state->setError($element, t('Unfortunately, not enough units of this type are available'));

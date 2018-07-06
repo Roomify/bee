@@ -47,21 +47,18 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
       ->condition('type', $value['content_type']);
 
     $nids = $query->execute();
-    foreach (Node::loadMultiple($nids) as $node) {
-      $values = [
-        'node' => $node,
-        'start_date' => $start_date,
-        'end_date' => $end_date,
-      ];
 
-      if ($node_available_units = bee_webform_get_available_units($values)) {
+    // Allow other modules to alter the available units for this node.
+    $context = [
+      'form_values' => $value,
+      'nids' => $nids,
+    ];
+    \Drupal::moduleHandler()->alter('bee_webform_available_node_ids', $nids, $context);
 
-        // Allow other modules to alter the available units for this node.
-        $context = [
-          'form_values' => $value,
-          'node' => $node,
-        ];
-        \Drupal::moduleHandler()->alter('bee_webform_available_units', $node_available_units, $context);
+    foreach ($nids as $nid) {
+      $node = node_load($nid);
+
+      if ($node_available_units = bee_webform_get_available_units_for_node($node, $value)) {
 
         if (count($node_available_units) == $value['capacity']) {
           $available_units = [$node->id() => $node_available_units];
@@ -178,15 +175,70 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
  * return array
  */
 function bee_webform_get_available_units($values) {
-  $node = $values['node'];
+  $start_date = $values['start_date'];
+  $end_date = $values['end_date'];
+  $content_type = $values['content_type'];
+
+  $bee_settings = \Drupal::config('node.type.' . $content_type)->get('bee');
+  $availability_type = $bee_settings['bookable_type'];
+
+  $units_by_nid = [];
+  $query = \Drupal::entityQuery('node')
+    ->condition('type', $content_type);
+  $nids = $query->execute();
+
+  // Allow other modules to alter the available units for this node.
+  $context = [
+    'form_values' => $values,
+    'nids' => $nids,
+  ];
+  \Drupal::moduleHandler()->alter('bee_webform_available_node_ids', $nids, $context);
+
+  $field_name = 'field_availability_' . $availability_type . '_target_id';
+  $query = \Drupal::database()->select('node__field_availability_' . $availability_type, 'nfa');
+  $query->addField('nfa', $field_name);
+  $query->condition('nfa.entity_id', $nids, 'IN');
+  $unit_ids = $query->execute()->fetchCol();
+
+  $drupal_units = bat_unit_load_multiple($unit_ids);
+  if ($bee_settings['bookable_type'] == 'daily') {
+    $start_date = new \DateTime($start_date);
+    $end_date = new \DateTime($end_date);
+    $end_date->sub(new \DateInterval('PT1M'));
+
+    $available_units_ids = bat_event_get_matching_units($start_date, $end_date, ['bee_daily_available'], $bee_settings['type_id'], 'availability_daily', FALSE, $drupal_units);
+  }
+  else {
+    $start_date = new \DateTime($start_date);
+    $end_date = new \DateTime($end_date);
+    $end_date->sub(new \DateInterval('PT1M'));
+
+    $available_units_ids = bat_event_get_matching_units($start_date, $end_date, ['bee_hourly_available'], $bee_settings['type_id'], 'availability_hourly', FALSE, $drupal_units);
+  }
+
+  // Remove unavailable units from mapping.
+  $units = array_intersect($unit_ids, $available_units_ids);
+
+  return $units;
+}
+
+
+/**
+ * Get available Units for a given node.
+ *
+ * @param $values
+ *
+ * return array
+ */
+function bee_webform_get_available_units_for_node($node, $values) {
   $start_date = $values['start_date'];
   $end_date = $values['end_date'];
 
   $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
 
-  $units_ids = [];
+  $drupal_units = [];
   foreach ($node->get('field_availability_' . $bee_settings['bookable_type']) as $unit) {
-    $units_ids[] = $unit->entity->id();
+    $drupal_units[$unit->entity->id()] = $unit->entity;
   }
 
   if ($bee_settings['bookable_type'] == 'daily') {
@@ -194,17 +246,17 @@ function bee_webform_get_available_units($values) {
     $end_date = new \DateTime($end_date);
     $end_date->sub(new \DateInterval('PT1M'));
 
-    $available_units_ids = bat_event_get_matching_units($start_date, $end_date, ['bee_daily_available'], $bee_settings['type_id'], 'availability_daily');
+    $available_units_ids = bat_event_get_matching_units($start_date, $end_date, ['bee_daily_available'], $bee_settings['type_id'], 'availability_daily', FALSE, $drupal_units);
   }
   else {
     $start_date = new \DateTime($start_date);
     $end_date = new \DateTime($end_date);
     $end_date->sub(new \DateInterval('PT1M'));
 
-    $available_units_ids = bat_event_get_matching_units($start_date, $end_date, ['bee_hourly_available'], $bee_settings['type_id'], 'availability_hourly');
+    $available_units_ids = bat_event_get_matching_units($start_date, $end_date, ['bee_hourly_available'], $bee_settings['type_id'], 'availability_hourly', FALSE, $drupal_units);
   }
 
-  return array_intersect($units_ids, $available_units_ids);
+  return $available_units_ids;
 }
 
 /**
