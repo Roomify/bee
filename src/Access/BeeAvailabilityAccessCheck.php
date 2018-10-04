@@ -35,11 +35,13 @@ class BeeAvailabilityAccessCheck implements AccessInterface {
    *   A \Drupal\Core\Access\AccessInterface constant value.
    */
   public function access(AccountInterface $account, Node $node = NULL) {
-    $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+    if ($node) {
+      $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
 
-    if (isset($bee_settings['bookable']) && $bee_settings['bookable']) {
-      if ($account->hasPermission('admin ' . $node->bundle() . ' bee availability')) {
-        return AccessResult::allowed();
+      if (isset($bee_settings['bookable']) && $bee_settings['bookable']) {
+        if ($account->hasPermission('admin ' . $node->bundle() . ' bee availability')) {
+          return AccessResult::allowed();
+        }
       }
     }
 

@@ -18,7 +18,7 @@ class BeeAddReservationAccessCheck implements AccessInterface {
   protected $entityTypeManager;
 
   /**
-   * Constructs a BeeAvailabilityAccessCheck object.
+   * Constructs a BeeAddReservationAccessCheck object.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_manager
    *   The entity manager.
