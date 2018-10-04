@@ -852,12 +852,19 @@ function bee_add_price_field($field_name, $node_type) {
   }
 
   if (empty($field)) {
+    $store_storage = \Drupal::entityTypeManager()->getStorage('commerce_store');
+    $default_store = $store_storage->loadDefault();
+
     $field = FieldConfig::create([
       'field_storage' => $field_storage,
       'entity_type' => 'node',
       'label' => 'Price',
       'bundle' => $node_type->id(),
-      'required' => FALSE,
+      'required' => TRUE,
+      'default_value' => [
+        'number' => 0,
+        'currency_code' => $default_store->getDefaultCurrencyCode(),
+      ],
       'settings' => [],
     ]);
     $field->save();
