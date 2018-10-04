@@ -45,15 +45,33 @@ class BeeController extends ControllerBase implements ContainerInjectionInterfac
       ];
     }
     else {
+      $minTime = FALSE;
+      $maxTime = FALSE;
+      $hidden_days = [];
+
       if ($node->get('field_use_open_hours')->value) {
         $business_hours = [];
+        $hidden_days = range(0, 6, 1);
 
         foreach ($node->get('field_open_hours')->getValue() as $value) {
+          $day = $value['day'];
+          $starthours = OfficeHoursDateHelper::format($value['starthours'], 'H:i:s');
+          $endhours = OfficeHoursDateHelper::format($value['endhours'], 'H:i:s');
+
           $business_hours[] = [
-            'dow' => [$value['day']],
-            'start' => OfficeHoursDateHelper::format($value['starthours'], 'H:i'),
-            'end' => OfficeHoursDateHelper::format($value['endhours'], 'H:i'),
+            'dow' => [$day],
+            'start' => $starthours,
+            'end' => $endhours,
           ];
+
+          if ($minTime == FALSE || strtotime($starthours) < strtotime($minTime)) {
+            $minTime = $starthours;
+          }
+          if ($maxTime == FALSE || strtotime($endhours) < strtotime($maxTime)) {
+            $maxTime = $endhours;
+          }
+
+          unset($hidden_days[$day]);
         }
       }
       else {
@@ -78,6 +96,9 @@ class BeeController extends ControllerBase implements ContainerInjectionInterfac
             'defaultView' => 'timelineTenDay',
             'businessHours' => $business_hours,
             'selectConstraint' => 'businessHours',
+            'minTime' => ($minTime) ? $minTime : '00:00:00',
+            'maxTime' => ($maxTime) ? $maxTime : '24:00:00',
+            'hiddenDays' => array_keys($hidden_days),
           ],
         ],
       ];
