@@ -93,6 +93,11 @@ class AddReservationForm extends FormBase {
     }
 
     if ($dates_valid) {
+      if ($end_date < $start_date) {
+        $form_state->setErrorByName('end_date', $this->t('End date must be on or after the start date.'));
+        return;
+      }
+
       if ($bee_settings['bookable_type'] == 'hourly') {
         if ($node->get('field_use_open_hours')->value) {
           $open_hours = $node->get('field_open_hours')->getValue();
