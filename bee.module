@@ -4,8 +4,12 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\Entity\EntityViewDisplay;
+use Drupal\Core\Render\Markup;
+use Drupal\Core\Link;
+use Drupal\Core\Url;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\views\ViewExecutable;
 use Drupal\office_hours\OfficeHoursDateHelper;
 use Drupal\commerce_product\Entity\ProductType;
 use Drupal\commerce_product\Entity\ProductVariationType;
@@ -641,6 +645,30 @@ function bee_bat_api_events_index_calendar_alter(&$events, $context) {
 
         if ($start_date->format('Y-m-d') != $end_date->format('Y-m-d')) {
           $events[$id]['end'] = $end_date->add(new DateInterval('P1D'))->format('Y-m-d') . 'T00:00:00';
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_views_pre_render().
+ */
+function bee_views_pre_render(ViewExecutable $view) {
+  if ($view->id() == 'commerce_order_item_table') {
+    foreach ($view->result as $id => $result) {
+      if ($result->_entity->bundle() == 'bee') {
+        if (($booking = $result->_entity->get('field_booking')->entity) &&
+            ($node = $result->_entity->get('field_node')->entity)) {
+          $url = Url::fromRoute('entity.node.canonical', ['node' => $node->id()]);
+          $link = Link::fromTextAndUrl($node->label(), $url)->toString();
+
+          $start_date = $booking->get('booking_start_date')->value;
+          $end_date = $booking->get('booking_end_date')->value;
+
+          $title = Markup::create('Booking for ' . $link . ' from ' . $start_date . ' to ' . $end_date);
+
+          $view->result[$id]->_entity->set('title', $title);
         }
       }
     }
