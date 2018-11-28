@@ -1,10 +1,10 @@
 name: Bookable Entities Everywhere
 type: module
-description: Bookable Entities Everywhere - easily make content types bookable with the BAT module
+description: Bookable Entities Everywhere - easily make content types bookable with the BAT module.
 core: 8.x
 package: bat
 
 dependencies:
-  - bat_booking
-  - bat_event_ui
-  - office_hours
+  - bat:bat_booking
+  - bat:bat_event_ui
+  - office_hours:office_hours
