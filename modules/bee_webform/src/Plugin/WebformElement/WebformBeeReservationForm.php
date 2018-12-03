@@ -27,6 +27,7 @@ class WebformBeeReservationForm extends WebformCompositeBase {
   public function getDefaultProperties() {
     return [
       'content_types' => [],
+      'only_check_availability' => FALSE,
     ] + parent::getDefaultProperties();
   }
 
@@ -53,6 +54,11 @@ class WebformBeeReservationForm extends WebformCompositeBase {
       '#title' => $this->t('Content type(s)'),
       '#options' => $options,
       '#element_validate' => [[get_class($this), 'validateContentTypes']],
+    ];
+
+    $form['composite']['only_check_availability'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Only check availability'),
     ];
 
     return $form;
