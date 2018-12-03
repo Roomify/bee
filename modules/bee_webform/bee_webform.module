@@ -5,16 +5,20 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\node\Entity\Node;
+use Drupal\webform\Entity\Webform;
 
 /**
  * Implements hook_form_alter().
  */
 function bee_webform_form_alter(&$form, FormStateInterface $form_state, $form_id) {
   if (isset($form['#webform_id'])) {
-    $webform = \Drupal\webform\Entity\Webform::load($form['#webform_id']);
-    foreach ($webform->getElementsDecodedAndFlattened() as $element_id => $element) {
-      if ($element['#type'] == 'webform_bee_reservation_form') {
-        $form['actions']['submit']['#submit'][] = 'bee_webform_form_submit';
+    $webform = Webform::load($form['#webform_id']);
+
+    if ($form['#form_id'] == 'webform_submission_' . $webform->id() . '_add_form') {
+      foreach ($webform->getElementsDecodedAndFlattened() as $element_id => $element) {
+        if ($element['#type'] == 'webform_bee_reservation_form') {
+          $form['actions']['submit']['#submit'][] = 'bee_webform_form_submit';
+        }
       }
     }
   }
@@ -24,7 +28,7 @@ function bee_webform_form_alter(&$form, FormStateInterface $form_state, $form_id
  * bee_webform submission handler.
  */
 function bee_webform_form_submit($form, FormStateInterface $form_state) {
-  $webform = \Drupal\webform\Entity\Webform::load($form['#webform_id']);
+  $webform = Webform::load($form['#webform_id']);
   foreach ($webform->getElementsDecodedAndFlattened() as $element_id => $element) {
     if ($element['#type'] == 'webform_bee_reservation_form') {
       $bee_element_id = $element_id;
