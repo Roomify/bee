@@ -6,6 +6,7 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\node\Entity\Node;
 use Drupal\webform\Entity\Webform;
+use Drupal\webform\Entity\WebformSubmission;
 
 /**
  * Implements hook_form_alter().
@@ -15,159 +16,150 @@ function bee_webform_form_alter(&$form, FormStateInterface $form_state, $form_id
     $webform = Webform::load($form['#webform_id']);
 
     if ($form['#form_id'] == 'webform_submission_' . $webform->id() . '_add_form') {
-      foreach ($webform->getElementsDecodedAndFlattened() as $element_id => $element) {
-        if ($element['#type'] == 'webform_bee_reservation_form') {
-          $form['actions']['submit']['#submit'][] = 'bee_webform_form_submit';
-        }
+      if (_bee_webform_get_webform_bee_reservation_element($webform)) {
+        $form['actions']['submit']['#submit'][] = 'bee_webform_form_submit';
       }
     }
   }
 }
 
 /**
- * bee_webform submission handler.
+ * Webform submission handler.
  */
 function bee_webform_form_submit($form, FormStateInterface $form_state) {
   $webform = Webform::load($form['#webform_id']);
-  foreach ($webform->getElementsDecodedAndFlattened() as $element_id => $element) {
-    if ($element['#type'] == 'webform_bee_reservation_form') {
-      $bee_element_id = $element_id;
-    }
+  $webform_submission = $form_state->getFormObject()->getEntity();
+
+  $webform_bee_element = _bee_webform_get_webform_bee_reservation_element($webform);
+  $bee_element_id = $webform_bee_element['#id'];
+
+  if ($webform->getHandlers('commerce_webform_order')) {
+    bee_webform_add_reservation_to_cart($webform, $webform_submission, $bee_element_id);
   }
 
-  $value = $form_state->getValue($bee_element_id);
+  if (empty($webform_bee_element['#only_check_availability'])) {
+    $value = $form_state->getValue($bee_element_id);
 
-  if ($value['content_type'] && $value['start_date'] && $value['end_date'] && $value['capacity']) {
-    $webform_submission = $form_state->getFormObject()->getEntity();
+    if ($value['content_type'] && $value['start_date'] && $value['end_date'] && $value['capacity']) {
+      $start_date = $value['start_date'];
+      $end_date = $value['end_date'];
 
-    $start_date = $value['start_date'];
-    $end_date = $value['end_date'];
+      $max_capacity = FALSE;
 
-    $max_capacity = FALSE;
+      $available_units = [];
 
-    $available_units = [];
+      $nids = _bee_webform_get_nodeids_by_type($webform_submission, $bee_element_id);
 
-    $query = \Drupal::entityQuery('node')
-      ->condition('type', $value['content_type']);
+      foreach ($nids as $nid) {
+        $node = node_load($nid);
 
-    $nids = $query->execute();
+        if ($node_available_units = bee_webform_get_available_units_for_node($node, $webform_submission, $bee_element_id)) {
 
-    // Allow other modules to alter the available units for this node.
-    $context = [
-      'form_values' => $value,
-      'nids' => $nids,
-    ];
-    \Drupal::moduleHandler()->alter('bee_webform_available_node_ids', $nids, $context);
-
-    foreach ($nids as $nid) {
-      $node = node_load($nid);
-
-      if ($node_available_units = bee_webform_get_available_units_for_node($node, $value)) {
-
-        if (count($node_available_units) == $value['capacity']) {
-          $available_units = [$node->id() => $node_available_units];
-          break;
-        }
-        elseif (count($node_available_units) > $value['capacity']) {
-          $available_units[$node->id()] = $node_available_units;
-          $max_capacity = TRUE;
-        }
-        elseif (!$max_capacity) {
-          $available_units[$node->id()] = $node_available_units;
+          if (count($node_available_units) == $value['capacity']) {
+            $available_units = [$node->id() => $node_available_units];
+            break;
+          }
+          elseif (count($node_available_units) > $value['capacity']) {
+            $available_units[$node->id()] = $node_available_units;
+            $max_capacity = TRUE;
+          }
+          elseif (!$max_capacity) {
+            $available_units[$node->id()] = $node_available_units;
+          }
         }
       }
-    }
 
-    uasort($available_units, function($a, $b) { return count($a) - count($b); });
+      uasort($available_units, function($a, $b) { return count($a) - count($b); });
 
-    $index = 0;
-    $events_created = [];
+      $index = 0;
+      $events_created = [];
 
-    foreach ($available_units as $nid => $node_available_units) {
-      if ($max_capacity && count($node_available_units) < $value['capacity']) {
-        continue;
-      }
+      foreach ($available_units as $nid => $node_available_units) {
+        if ($max_capacity && count($node_available_units) < $value['capacity']) {
+          continue;
+        }
 
-      $node = Node::load($nid);
+        $node = Node::load($nid);
 
-      $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+        $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
 
-      if ($bee_settings['bookable_type'] == 'daily') {
-        $booked_state = bat_event_load_state_by_machine_name('bee_daily_booked');
-      }
-      else {
-        $booked_state = bat_event_load_state_by_machine_name('bee_hourly_booked');
-      }
-
-      $start_date = new \DateTime($start_date);
-      $end_date = new \DateTime($end_date);
-
-      foreach ($node_available_units as $unit) {
         if ($bee_settings['bookable_type'] == 'daily') {
-          $event = bat_event_create(['type' => 'availability_daily']);
-          $event_dates = [
-            'value' => $start_date->format('Y-m-d\TH:i:00'),
-            'end_value' => $end_date->format('Y-m-d\TH:i:00'),
-          ];
-          $event->set('event_dates', $event_dates);
-          $event->set('event_state_reference', $booked_state->id());
+          $booked_state = bat_event_load_state_by_machine_name('bee_daily_booked');
         }
         else {
-          $event = bat_event_create(['type' => 'availability_hourly']);
-          $event_dates = [
-            'value' => $start_date->format('Y-m-d\TH:i:00'),
-            'end_value' => $end_date->format('Y-m-d\TH:i:00'),
-          ];
-          $event->set('event_dates', $event_dates);
-          $event->set('event_state_reference', $booked_state->id());
+          $booked_state = bat_event_load_state_by_machine_name('bee_hourly_booked');
         }
 
-        $event->set('field_event_webform_submission', $webform_submission->id());
-        $event->set('event_bat_unit_reference', $unit);
-        $event->save();
+        $start_date = new \DateTime($start_date);
+        $end_date = new \DateTime($end_date);
 
-        $events_created[] = $event->id();
+        foreach ($node_available_units as $unit) {
+          if ($bee_settings['bookable_type'] == 'daily') {
+            $event = bat_event_create(['type' => 'availability_daily']);
+            $event_dates = [
+              'value' => $start_date->format('Y-m-d\TH:i:00'),
+              'end_value' => $end_date->format('Y-m-d\TH:i:00'),
+            ];
+            $event->set('event_dates', $event_dates);
+            $event->set('event_state_reference', $booked_state->id());
+          }
+          else {
+            $event = bat_event_create(['type' => 'availability_hourly']);
+            $event_dates = [
+              'value' => $start_date->format('Y-m-d\TH:i:00'),
+              'end_value' => $end_date->format('Y-m-d\TH:i:00'),
+            ];
+            $event->set('event_dates', $event_dates);
+            $event->set('event_state_reference', $booked_state->id());
+          }
 
-        if (++$index == $value['capacity']) {
-          break 2;
+          $event->set('field_event_webform_submission', $webform_submission->id());
+          $event->set('event_bat_unit_reference', $unit);
+          $event->save();
+
+          $events_created[] = $event->id();
+
+          if (++$index == $value['capacity']) {
+            break 2;
+          }
         }
       }
-    }
 
-    // Send email with summary of any allocations made.
-    if (count($events_created) == 0) {
-      $message = t("No nodes with sufficient capacity were found, therefore no reservations were created.\nTo view the submission, please go to @submission", ['@submission' => $webform_submission->url('canonical', ['absolute' => TRUE])]);
-    }
-    else {
-      $events = bat_event_load_multiple($events_created);
-      $event_links = [];
-      foreach ($events as $event) {
-        $event_links[] = $event->url('canonical', ['absolute' => TRUE]);
+      // Send email with summary of any allocations made.
+      if (count($events_created) == 0) {
+        $message = t("No nodes with sufficient capacity were found, therefore no reservations were created.\nTo view the submission, please go to @submission", ['@submission' => $webform_submission->url('canonical', ['absolute' => TRUE])]);
+      }
+      else {
+        $events = bat_event_load_multiple($events_created);
+        $event_links = [];
+        foreach ($events as $event) {
+          $event_links[] = $event->url('canonical', ['absolute' => TRUE]);
+        }
+
+        $message = t("The following BEE reservations were created for a new webform submission:\n\n@event_links\n\nTo view the submission, please go to @submission", ['@event_links' => implode("\n", $event_links), '@submission' => $webform_submission->url('canonical', ['absolute' => TRUE])]);
+      }
+      $mailManager = \Drupal::service('plugin.manager.mail');
+
+      $module = 'bee_webform';
+      $key = 'bee_webform_submission';
+      $to = $webform->getOwner()->getEmail();
+      $params['webform_title'] = $webform->get('title');
+      $params['message'] = $message;
+      $langcode = $webform->getOwner()->getPreferredLangcode();
+      $send = TRUE;
+
+      $result = $mailManager->mail($module, $key, $to, $langcode, $params, NULL, $send);
+      if ($result['result'] !== true) {
+        $message = t('There was a problem sending your email notification to @email for creating a webform BEE reservation.', array('@email' => $to));
+        drupal_set_message($message, 'error');
+        \Drupal::logger('bee_webform')->error($message);
+        return;
       }
 
-      $message = t("The following BEE reservations were created for a new webform submission:\n\n@event_links\n\nTo view the submission, please go to @submission", ['@event_links' => implode("\n", $event_links), '@submission' => $webform_submission->url('canonical', ['absolute' => TRUE])]);
+      $message = t('An email notification has been sent to @email for creating a webform BEE reservation.', array('@email' => $to));
+      drupal_set_message($message);
+      \Drupal::logger('bee_webform')->notice($message);
     }
-    $mailManager = \Drupal::service('plugin.manager.mail');
-
-    $module = 'bee_webform';
-    $key = 'bee_webform_submission';
-    $to = $webform->getOwner()->getEmail();
-    $params['webform_title'] = $webform->get('title');
-    $params['message'] = $message;
-    $langcode = $webform->getOwner()->getPreferredLangcode();
-    $send = TRUE;
-
-    $result = $mailManager->mail($module, $key, $to, $langcode, $params, NULL, $send);
-    if ($result['result'] !== true) {
-      $message = t('There was a problem sending your email notification to @email for creating a webform BEE reservation.', array('@email' => $to));
-      drupal_set_message($message, 'error');
-      \Drupal::logger('bee_webform')->error($message);
-      return;
-    }
-
-    $message = t('An email notification has been sent to @email for creating a webform BEE reservation.', array('@email' => $to));
-    drupal_set_message($message);
-    \Drupal::logger('bee_webform')->notice($message);
   }
 }
 
@@ -226,17 +218,20 @@ function bee_webform_get_available_units($values) {
   return $units;
 }
 
-
 /**
  * Get available Units for a given node.
  *
- * @param $values
+ * @param $node
+ * @param WebformSubmission $webform_submission
+ * @param $bee_element_id
  *
  * return array
  */
-function bee_webform_get_available_units_for_node($node, $values) {
-  $start_date = $values['start_date'];
-  $end_date = $values['end_date'];
+function bee_webform_get_available_units_for_node($node, WebformSubmission $webform_submission, $bee_element_id) {
+  $data = $webform_submission->getData();
+
+  $start_date = $data[$bee_element_id]['start_date'];
+  $end_date = $data[$bee_element_id]['end_date'];
 
   $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
 
@@ -315,5 +310,89 @@ function bee_webform_mail($key, &$message, $params) {
       $message['subject'] = t('Reservations created from webform @title', array('@title' => $params['webform_title']), $options);
       $message['body'][] = SafeMarkup::checkPlain($params['message']);
       break;
+  }
+}
+
+/**
+ * @param Webform $webform
+ *
+ * @return array|false
+ */
+function _bee_webform_get_webform_bee_reservation_element(Webform $webform) {
+  foreach ($webform->getElementsDecodedAndFlattened() as $element_id => $element) {
+    if ($element['#type'] == 'webform_bee_reservation_form') {
+      $element['#id'] = $element_id;
+
+      return $element;
+    }
+  }
+
+  return FALSE;
+}
+
+/**
+ * @param WebformSubmission $webform_submission
+ * @param $bee_element_id
+ *
+ * @return array
+ */
+function _bee_webform_get_nodeids_by_type(WebformSubmission $webform_submission, $bee_element_id) {
+  $data = $webform_submission->getData();
+
+  $query = \Drupal::entityQuery('node')
+    ->condition('type', $data[$bee_element_id]['content_type']);
+
+  $nids = $query->execute();
+
+  // Allow other modules to alter the available units for this node.
+  $context = [
+    'webform_submission' => $webform_submission,
+    'nids' => $nids,
+  ];
+  \Drupal::moduleHandler()->alter('bee_webform_available_node_ids', $nids, $context);
+
+  return $nids;
+}
+
+/**
+ * @param Webform $webform
+ * @param WebformSubmission $webform_submission
+ * @param $bee_element_id
+ */
+function bee_webform_add_reservation_to_cart(Webform $webform, WebformSubmission $webform_submission, $bee_element_id) {
+  $data = $webform_submission->getData();
+
+  $store = \Drupal::service('commerce_store.current_store')->getStore();
+
+  $cart_provider = \Drupal::service('commerce_cart.cart_provider');
+  $cart = $cart_provider->getCart('default', $store);
+
+  $start_date = new \DateTime($data[$bee_element_id]['start_date']);
+  $end_date = new \DateTime($data[$bee_element_id]['end_date']);
+
+  foreach ($cart->getItems() as $order_item) {
+    if ($order_item->bundle() == 'bee') {
+      $nids = _bee_webform_get_nodeids_by_type($webform_submission, $bee_element_id);
+
+      foreach ($nids as $nid) {
+        $node = node_load($nid);
+
+        if (bee_webform_get_available_units_for_node($node, $webform_submission, $bee_element_id)) {
+          $booking = bat_booking_create([
+            'type' => 'bee',
+            'label' => $node->label(),
+          ]);
+          $booking->set('booking_start_date', $start_date->format('Y-m-d H:i:s'));
+          $booking->set('booking_end_date', $end_date->format('Y-m-d H:i:s'));
+          $booking->save();
+
+          $order_item->set('field_booking', $booking);
+          $order_item->set('field_node', $node);
+          $order_item->save();
+
+          break;
+        }
+      }
+    }
   }
 }
