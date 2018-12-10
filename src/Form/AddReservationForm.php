@@ -183,8 +183,8 @@ class AddReservationForm extends FormBase {
         'type' => 'bee',
         'label' => $node->label(),
       ]);
-      $booking->set('booking_start_date', $start_date->format('Y-m-d H:i:s'));
-      $booking->set('booking_end_date', $end_date->format('Y-m-d H:i:s'));
+      $booking->set('booking_start_date', $start_date->format('Y-m-d\TH:i:s'));
+      $booking->set('booking_end_date', $end_date->format('Y-m-d\TH:i:s'));
       $booking->save();
 
       $product = $node->get('field_product')->entity;
