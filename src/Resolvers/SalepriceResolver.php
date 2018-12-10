@@ -44,6 +44,10 @@ class SalepriceResolver implements PriceResolverInterface {
             if ($booking = $order_item->get('field_booking')->entity) {
               $start_date = new \DateTime($booking->get('booking_start_date')->value);
               $end_date = new \DateTime($booking->get('booking_end_date')->value);
+              $capacity = 1;
+              if ($booking_capacity = $booking->get('booking_capacity')->value) {
+                $capacity = $booking_capacity;
+              }
 
               $interval = $start_date->diff($end_date);
 
@@ -65,11 +69,11 @@ class SalepriceResolver implements PriceResolverInterface {
 
                 if ($field_price_frequency == 'hour') {
                   $hours = ($interval->days * 24) + $interval->h;
-                  $amount = number_format($base_price * $hours, 2, '.', '');
+                  $amount = number_format($base_price * $hours * $capacity, 2, '.', '');
                 }
                 else {
                   $minutes = ($interval->days * 24 * 60) + ($interval->h * 60) + $interval->i;
-                  $amount = number_format($base_price * $minutes, 2, '.', '');
+                  $amount = number_format($base_price * $minutes * $capacity, 2, '.', '');
                 }
               }
 
