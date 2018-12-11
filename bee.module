@@ -676,6 +676,8 @@ function bee_views_pre_render(ViewExecutable $view) {
 }
 
 /**
+ * Add "Availability" field to the node type.
+ *
  * @param $field_name
  * @param $node_type
  */
@@ -714,6 +716,8 @@ function bee_add_availability_field($field_name, $node_type) {
 }
 
 /**
+ * Add "Open Hours" field to the node type.
+ *
  * @param $field_name
  * @param $node_type
  */
@@ -775,6 +779,8 @@ function bee_add_open_hours_field($field_name, $node_type) {
 }
 
 /**
+ * Add "Set Open Hours" field to the node type.
+ *
  * @param $field_name
  * @param $node_type
  */
@@ -818,6 +824,8 @@ function bee_add_use_open_hours_field($field_name, $node_type) {
 }
 
 /**
+ * Add "Product" field to the node type.
+ *
  * @param $field_name
  * @param $node_type
  */
@@ -860,6 +868,8 @@ function bee_add_product_reference_field($field_name, $node_type) {
 }
 
 /**
+ * Add "Price" field to the node type.
+ *
  * @param $field_name
  * @param $node_type
  */
@@ -907,6 +917,8 @@ function bee_add_price_field($field_name, $node_type) {
 }
 
 /**
+ * Add "Price frequency" field to the node type.
+ *
  * @param $field_name
  * @param $node_type
  */
@@ -951,6 +963,9 @@ function bee_add_price_frequency_field($field_name, $node_type) {
   }
 }
 
+/**
+ * Create "Product variation" type for BEE.
+ */
 function bee_create_bee_product_variation_type() {
   if (ProductVariationType::load('bee') === NULL) {
     $variation_type = ProductVariationType::create([
@@ -976,6 +991,8 @@ function bee_create_bee_product_variation_type() {
 }
 
 /**
+ * Create a "Product" type for each node type in BEE.
+ *
  * @param $node_type
  */
 function bee_create_node_product_type($node_type) {
@@ -993,6 +1010,9 @@ function bee_create_node_product_type($node_type) {
   }
 }
 
+/**
+ * Create "Order item" type for BEE.
+ */
 function bee_create_bee_order_item_type() {
   $id = 'bee';
 
@@ -1129,6 +1149,9 @@ function bee_create_bee_order_item_type() {
   }
 }
 
+/**
+ * Create "Booking" type for BEE.
+ */
 function bee_create_bee_booking_type() {
   $id = 'bee';
 
@@ -1138,9 +1161,66 @@ function bee_create_bee_booking_type() {
       'type' => $id,
     ]);
     $booking_type->save();
+
+    bee_set_booking_event_reference_field_cardinality();
+    bee_create_booking_capacity_field();
   }
 }
 
+/**
+ * Set cardinality as unlimited for the "booking_event_reference" field.
+ */
+function bee_set_booking_event_reference_field_cardinality() {
+  $field_storage = FieldStorageConfig::loadByName('bat_booking', 'booking_event_reference');
+  $field_storage->setCardinality(-1);
+  $field_storage->save();
+}
+
+/**
+ * Add booking "Capacity" field.
+ */
+function bee_create_booking_capacity_field() {
+  $field_name = 'booking_capacity';
+
+  $field_storage = FieldStorageConfig::loadByName('bat_booking', $field_name);
+  $field = FieldConfig::loadByName('bat_booking', 'bee', $field_name);
+
+  if (empty($field_storage)) {
+    $field_storage = FieldStorageConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => 'bat_booking',
+      'type' => 'integer',
+      'cardinality' => 1,
+      'locked' => 1,
+      'settings' => [
+        'unsigned' => true,
+        'size' => 'normal',
+      ],
+    ]);
+    $field_storage->save();
+  }
+
+  if (empty($field)) {
+    $field = FieldConfig::create([
+      'field_storage' => $field_storage,
+      'entity_type' => 'bat_booking',
+      'label' => 'Capacity',
+      'bundle' => 'bee',
+      'required' => FALSE,
+      'settings' => [
+        'min' => null,
+        'max' => null,
+        'prefix' => '',
+        'suffix' => '',
+      ],
+    ]);
+    $field->save();
+  }
+}
+
+/**
+ * Create a Product instance for this node.
+ */
 function bee_create_node_product($node) {
   $store_storage = \Drupal::entityTypeManager()->getStorage('commerce_store');
   $default_store = $store_storage->loadDefault();

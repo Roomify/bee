@@ -128,3 +128,21 @@ function bee_uninstall() {
   bat_event_delete_event_type_schema('availability_daily');
   bat_event_delete_event_type_schema('availability_hourly');
 }
+
+/**
+ * Add booking "Capacity" field.
+ */
+function bee_update_8001() {
+  if (bat_booking_type_load('bee') !== NULL) {
+    bee_create_booking_capacity_field();
+  }
+}
+
+/**
+ * Set cardinality as unlimited for the "booking_event_reference" field.
+ */
+function bee_update_8002() {
+  if (bat_booking_type_load('bee') !== NULL) {
+    bee_set_booking_event_reference_field_cardinality();
+  }
+}
