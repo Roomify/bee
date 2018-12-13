@@ -33,7 +33,7 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
   $webform_bee_element = _bee_webform_get_webform_bee_reservation_element($webform);
   $bee_element_id = $webform_bee_element['#id'];
 
-  if ($webform->getHandlers('commerce_webform_order')) {
+  if ($webform->getHandlers('commerce_webform_order')->count()) {
     bee_webform_add_reservation_to_cart($webform, $webform_submission, $bee_element_id);
   }
 
