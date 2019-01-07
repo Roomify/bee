@@ -42,8 +42,12 @@ class BeePermissions implements ContainerInjectionInterface {
     $permissions = [];
 
     foreach (entity_get_bundles('node') as $bundle_name => $bundle_info) {
-      $permissions['admin ' . $bundle_name . ' bee availability'] = [
-        'title' => t('Admin %bundle bee availability', ['%bundle' => $bundle_info['label']]),
+      $permissions['manage availability for all ' . $bundle_name . ' nodes'] = [
+        'title' => t('Manage availability for all %bundle nodes', ['%bundle' => $bundle_info['label']]),
+      ];
+
+      $permissions['manage availability for own ' . $bundle_name . ' nodes'] = [
+        'title' => t('Manage availability for own %bundle nodes', ['%bundle' => $bundle_info['label']]),
       ];
     }
 
