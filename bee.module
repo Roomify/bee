@@ -315,15 +315,17 @@ function bee_node_type_edit_form_submit(array &$form, FormStateInterface $form_s
     bee_add_availability_field('field_availability_' . $bee_settings['bookable_type'], $node_type);
 
     $view_display = \Drupal::entityTypeManager()->getStorage('entity_view_display')->load('node.' . $node_type->id() . '.default');
-    $view_display->setComponent('field_availability_' . $bee_settings['bookable_type'], [
-      'type' => 'entity_reference_entity_view',
-      'region' => 'content',
-      'label' => 'above',
-      'settings' => [
-        'view_mode' => $bee_settings['bookable_type'] . '_calendar',
-      ],
-    ]);
-    $view_display->save();
+    if ($view_display !== NULL) {
+      $view_display->setComponent('field_availability_' . $bee_settings['bookable_type'], [
+          'type' => 'entity_reference_entity_view',
+          'region' => 'content',
+          'label' => 'above',
+          'settings' => [
+            'view_mode' => $bee_settings['bookable_type'] . '_calendar',
+        ],
+      ]);
+      $view_display->save();
+    }
 
     if (!isset($bee_settings['type_id'])) {
       $bat_type = bat_type_create(
@@ -761,20 +763,24 @@ function bee_add_open_hours_field($field_name, $node_type) {
     $field->save();
 
     $form_display = \Drupal::entityTypeManager()->getStorage('entity_form_display')->load('node.' . $node_type->id() . '.default');
-    $form_display->setComponent($field_name, [
-      'type' => 'office_hours_default',
-      'weight' => 3,
-    ]);
-    $form_display->save();
+    if ($form_display !== NULL) {
+      $form_display->setComponent($field_name, [
+        'type' => 'office_hours_default',
+        'weight' => 3,
+      ]);
+      $form_display->save();
+    }
 
     $view_display = \Drupal::entityTypeManager()->getStorage('entity_view_display')->load('node.' . $node_type->id() . '.default');
-    $view_display->setComponent($field_name, [
-      'type' => 'office_hours_table',
-      'region' => 'content',
-      'label' => 'above',
-      'settings' => [],
-    ]);
-    $view_display->save();
+    if ($view_display !== NULL) {
+      $view_display->setComponent($field_name, [
+        'type' => 'office_hours_table',
+        'region' => 'content',
+        'label' => 'above',
+        'settings' => [],
+      ]);
+      $view_display->save();
+    }
   }
 }
 
@@ -815,11 +821,13 @@ function bee_add_use_open_hours_field($field_name, $node_type) {
     $field->save();
 
     $form_display = \Drupal::entityTypeManager()->getStorage('entity_form_display')->load('node.' . $node_type->id() . '.default');
-    $form_display->setComponent($field_name, [
-      'type' => 'boolean_checkbox',
-      'weight' => 2,
-    ]);
-    $form_display->save();
+    if ($form_display !== NULL) {
+      $form_display->setComponent($field_name, [
+        'type' => 'boolean_checkbox',
+        'weight' => 2,
+      ]);
+      $form_display->save();
+    }
   }
 }
 
@@ -908,11 +916,13 @@ function bee_add_price_field($field_name, $node_type) {
     $field->save();
 
     $form_display = \Drupal::entityTypeManager()->getStorage('entity_form_display')->load('node.' . $node_type->id() . '.default');
-    $form_display->setComponent($field_name, [
-      'type' => 'commerce_price_default',
-      'weight' => 3,
-    ]);
-    $form_display->save();
+    if ($form_display !== NULL) {
+      $form_display->setComponent($field_name, [
+        'type' => 'commerce_price_default',
+        'weight' => 3,
+      ]);
+      $form_display->save();
+    }
   }
 }
 
@@ -955,11 +965,13 @@ function bee_add_price_frequency_field($field_name, $node_type) {
     $field->save();
 
     $form_display = \Drupal::entityTypeManager()->getStorage('entity_form_display')->load('node.' . $node_type->id() . '.default');
-    $form_display->setComponent($field_name, [
-      'type' => 'options_select',
-      'weight' => 4,
-    ]);
-    $form_display->save();
+    if ($form_display !== NULL) {
+      $form_display->setComponent($field_name, [
+        'type' => 'options_select',
+        'weight' => 4,
+      ]);
+      $form_display->save();
+    }
   }
 }
 
