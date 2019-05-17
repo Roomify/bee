@@ -4,6 +4,7 @@ namespace Drupal\bee\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\node\NodeInterface;
 use Drupal\office_hours\OfficeHoursDateHelper;
 
@@ -122,4 +123,15 @@ class BeeController extends ControllerBase implements ContainerInjectionInterfac
     ];
   }
 
+  /**
+   * The _title_callback for the page that renders the availability.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $node
+   *
+   * @return string
+   *   The page title.
+   */
+  public function availabilityTitle(EntityInterface $node) {
+    return $this->t('Availability for %label', ['%label' => $node->label()]);
+  }
 }

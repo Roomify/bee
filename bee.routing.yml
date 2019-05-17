@@ -2,6 +2,7 @@ bee.node.availability:
   path: '/node/{node}/availability'
   defaults:
     _controller: '\Drupal\bee\Controller\BeeController::availability'
+    _title_callback: '\Drupal\bee\Controller\BeeController::availabilityTitle'
   requirements:
     _bee_availability_access: 'node'
 
