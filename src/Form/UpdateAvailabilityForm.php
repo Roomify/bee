@@ -180,11 +180,11 @@ class UpdateAvailabilityForm extends FormBase {
           $temp_end_date = clone($date);
           $temp_end_date->add($repeat_interval);
 
-          $this->createDailyEvent($date, $temp_end_date, $bee_settings['type_id'], $values['state']);
+          $this->createDailyEvent($node, $date, $temp_end_date, $bee_settings['type_id'], $values['state']);
         }
       }
       else {
-        $this->createDailyEvent($start_date, $end_date, $bee_settings['type_id'], $values['state']);
+        $this->createDailyEvent($node, $start_date, $end_date, $bee_settings['type_id'], $values['state']);
       }
     }
     else {
@@ -212,28 +212,36 @@ class UpdateAvailabilityForm extends FormBase {
           $temp_end_date = clone($date);
           $temp_end_date->add($repeat_interval);
 
-          $this->createHoulyEvent($date, $temp_end_date, $bee_settings['type_id'], $values['state']);
+          $this->createHoulyEvent($node, $date, $temp_end_date, $bee_settings['type_id'], $values['state']);
         }
       }
       else {
-        $this->createHoulyEvent($start_date, $end_date, $bee_settings['type_id'], $values['state']);
+        $this->createHoulyEvent($node, $start_date, $end_date, $bee_settings['type_id'], $values['state']);
       }
     }
   }
 
   /**
+   * @param $node
    * @param $start_date
    * @param $end_date
    * @param $type_id
    * @param $new_state
    */
-  private function createDailyEvent($start_date, $end_date, $type_id, $new_state) {
+  private function createDailyEvent($node, $start_date, $end_date, $type_id, $new_state) {
     $temp_end_date = clone($end_date);
     $temp_end_date->sub(new \DateInterval('PT1M'));
 
     $booked_units = bat_event_get_matching_units($start_date, $temp_end_date, ['bee_daily_booked'], $type_id, 'availability_daily');
 
     $available_units = bat_event_get_matching_units($start_date, $temp_end_date, ['bee_daily_available', 'bee_daily_not_available'], $type_id, 'availability_daily');
+
+    $units_ids = [];
+    foreach ($node->get('field_availability_hourly') as $unit) {
+      $units_ids[] = $unit->entity->id();
+    }
+
+    $units = array_intersect($units_ids, $available_units);
 
     if ($available_units) {
       if ($new_state == 'available') {
@@ -268,12 +276,13 @@ class UpdateAvailabilityForm extends FormBase {
   }
 
   /**
+   * @param $node
    * @param $start_date
    * @param $end_date
    * @param $type_id
    * @param $new_state
    */
-  private function createHoulyEvent($start_date, $end_date, $type_id, $new_state) {
+  private function createHoulyEvent($node, $start_date, $end_date, $type_id, $new_state) {
     $temp_end_date = clone($end_date);
     $temp_end_date->sub(new \DateInterval('PT1M'));
 
@@ -281,7 +290,14 @@ class UpdateAvailabilityForm extends FormBase {
 
     $available_units = bat_event_get_matching_units($start_date, $temp_end_date, ['bee_hourly_available', 'bee_hourly_not_available'], $type_id, 'availability_hourly');
 
-    if ($available_units) {
+    $units_ids = [];
+    foreach ($node->get('field_availability_hourly') as $unit) {
+      $units_ids[] = $unit->entity->id();
+    }
+
+    $units = array_intersect($units_ids, $available_units);
+
+    if ($units) {
       if ($new_state == 'available') {
         $state = bat_event_load_state_by_machine_name('bee_hourly_available');
       }
@@ -289,7 +305,7 @@ class UpdateAvailabilityForm extends FormBase {
         $state = bat_event_load_state_by_machine_name('bee_hourly_not_available');
       }
 
-      foreach ($available_units as $unit) {
+      foreach ($units as $unit) {
         $event = bat_event_create(['type' => 'availability_hourly']);
         $event_dates = [
           'value' => $start_date->format('Y-m-d\TH:i:00'),
