@@ -255,9 +255,11 @@ function bee_node_add_more_units_submit($form, FormStateInterface $form_state) {
     $units_ids = $node->get('field_availability_' . $bee_settings['bookable_type'])->getValue();
 
     for ($i = 0; $i < $number_units; $i++) {
+      $index = count($units_ids) + 1;
+
       $bat_unit = bat_unit_create(
         [
-          'name' => $node->label() . ' ' . (count($units_ids) + 1),
+          'name' => mb_substr($node->label(), 0, 49 - mb_strlen($index)) . ' ' . $index,
           'type' => 'default',
           'unit_type_id' => $bee_settings['type_id'],
         ]
@@ -427,7 +429,7 @@ function bee_node_insert(EntityInterface $node) {
 
     $bat_unit = bat_unit_create(
       [
-        'name' => $node->label() . ' 1',
+        'name' => mb_substr($node->label(), 0, 48) . ' 1',
         'type' => 'default',
         'unit_type_id' => $bee_settings['type_id'],
       ]
