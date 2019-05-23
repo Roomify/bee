@@ -30,47 +30,49 @@ class OrderEventSubscriber implements EventSubscriberInterface {
   public function finalizeCart(WorkflowTransitionEvent $event) {
     $order = $event->getEntity();
 
-    foreach ($order->getItems() as $item) {
-      if ($booking = $item->get('field_booking')->entity) {
-        $node = $item->get('field_node')->entity;
+    foreach ($order->getItems() as $order_item) {
+      if ($order_item->bundle() == 'bee') {
+        if ($booking = $order_item->get('field_booking')->entity) {
+          $node = $order_item->get('field_node')->entity;
 
-        $start_date = new \DateTime($booking->get('booking_start_date')->value);
-        $end_date = new \DateTime($booking->get('booking_end_date')->value);
+          $start_date = new \DateTime($booking->get('booking_start_date')->value);
+          $end_date = new \DateTime($booking->get('booking_end_date')->value);
 
-        $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+          $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
 
-        if ($bee_settings['bookable_type'] == 'daily') {
-          $booked_state = bat_event_load_state_by_machine_name('bee_daily_booked');
-          $event_type = 'availability_daily';
+          if ($bee_settings['bookable_type'] == 'daily') {
+            $booked_state = bat_event_load_state_by_machine_name('bee_daily_booked');
+            $event_type = 'availability_daily';
+          }
+          else {
+            $booked_state = bat_event_load_state_by_machine_name('bee_hourly_booked');
+            $event_type = 'availability_hourly';
+          }
+
+          $capacity = ($booking->get('booking_capacity')->value) ? ($booking->get('booking_capacity')->value) : 1;
+
+          $events = [];
+
+          for ($i = 0; $i < $capacity; $i++) {
+            $event = bat_event_create(['type' => $event_type]);
+            $event_dates = [
+              'value' => $start_date->format('Y-m-d\TH:i:00'),
+              'end_value' => $end_date->format('Y-m-d\TH:i:00'),
+            ];
+            $event->set('event_dates', $event_dates);
+            $event->set('event_state_reference', $booked_state->id());
+
+            $available_units = $this->getAvailableUnits($node, $start_date, $end_date);
+
+            $event->set('event_bat_unit_reference', reset($available_units));
+            $event->save();
+
+            $events[] = $event;
+          }
+
+          $booking->set('booking_event_reference', $events);
+          $booking->save();
         }
-        else {
-          $booked_state = bat_event_load_state_by_machine_name('bee_hourly_booked');
-          $event_type = 'availability_hourly';
-        }
-
-        $capacity = ($booking->get('booking_capacity')->value) ? ($booking->get('booking_capacity')->value) : 1;
-
-        $events = [];
-
-        for ($i = 0; $i < $capacity; $i++) {
-          $event = bat_event_create(['type' => $event_type]);
-          $event_dates = [
-            'value' => $start_date->format('Y-m-d\TH:i:00'),
-            'end_value' => $end_date->format('Y-m-d\TH:i:00'),
-          ];
-          $event->set('event_dates', $event_dates);
-          $event->set('event_state_reference', $booked_state->id());
-
-          $available_units = $this->getAvailableUnits($node, $start_date, $end_date);
-
-          $event->set('event_bat_unit_reference', reset($available_units));
-          $event->save();
-
-          $events[] = $event;
-        }
-
-        $booking->set('booking_event_reference', $events);
-        $booking->save();
       }
     }
   }
