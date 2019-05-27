@@ -41,14 +41,14 @@ class AddReservationForm extends FormBase {
       '#type' => ($bee_settings['bookable_type'] == 'daily') ? 'date' : 'datetime',
       '#title' => t('Start date'),
       '#default_value' => ($bee_settings['bookable_type'] == 'daily') ? $today->format('Y-m-d') : new DrupalDateTime($today->format('Y-m-d H:00')),
-      '#date_increment' => 3600,
+      '#date_increment' => 60,
     ];
 
     $form['end_date'] = [
       '#type' => ($bee_settings['bookable_type'] == 'daily') ? 'date' : 'datetime',
       '#title' => t('End date'),
       '#default_value' => ($bee_settings['bookable_type'] == 'daily') ? $tomorrow->format('Y-m-d') : new DrupalDateTime($one_hour_later->format('Y-m-d H:00')),
-      '#date_increment' => 3600,
+      '#date_increment' => 60,
     ];
 
     $form['submit'] = [

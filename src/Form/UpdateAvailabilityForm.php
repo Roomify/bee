@@ -53,7 +53,7 @@ class UpdateAvailabilityForm extends FormBase {
     $form['availability']['start_date'] = [
       '#type' => ($bee_settings['bookable_type'] == 'daily') ? 'date' : 'datetime',
       '#title' => t('Start'),
-      '#date_increment' => 3600,
+      '#date_increment' => 60,
       '#default_value' => ($bee_settings['bookable_type'] == 'daily') ? $today->format('Y-m-d') : new DrupalDateTime($today->format('Y-m-d H:00')),
       '#required' => TRUE,
     ];
@@ -62,7 +62,7 @@ class UpdateAvailabilityForm extends FormBase {
       '#type' => ($bee_settings['bookable_type'] == 'daily') ? 'date' : 'datetime',
       '#title' => t('End'),
       '#default_value' => ($bee_settings['bookable_type'] == 'daily') ? $tomorrow->format('Y-m-d') : new DrupalDateTime($one_hour_later->format('Y-m-d H:00')),
-      '#date_increment' => 3600,
+      '#date_increment' => 60,
       '#required' => TRUE,
       '#suffix' => '</div>',
     ];
