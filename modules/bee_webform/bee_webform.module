@@ -141,13 +141,13 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
 
       $result = $mailManager->mail($module, $key, $to, $langcode, $params, NULL, $send);
       if ($result['result'] !== true) {
-        $message = t('There was a problem sending your email notification to @email for creating a webform BEE reservation.', array('@email' => $to));
+        $message = t('There was a problem sending your email notification to @email for creating a webform BEE reservation.', ['@email' => $to]);
         drupal_set_message($message, 'error');
         \Drupal::logger('bee_webform')->error($message);
         return;
       }
 
-      $message = t('An email notification has been sent to @email for creating a webform BEE reservation.', array('@email' => $to));
+      $message = t('An email notification has been sent to @email for creating a webform BEE reservation.', ['@email' => $to]);
       drupal_set_message($message);
       \Drupal::logger('bee_webform')->notice($message);
     }
@@ -291,14 +291,14 @@ function bee_webform_add_event_webform_reference_field($field_name, $event_type)
  * Implements hook_mail().
  */
 function bee_webform_mail($key, &$message, $params) {
-  $options = array(
+  $options = [
     'langcode' => $message['langcode'],
-  );
+  ];
 
   switch ($key) {
     case 'bee_webform_submission':
       $message['from'] = \Drupal::config('system.site')->get('mail');
-      $message['subject'] = t('Reservations created from webform @title', array('@title' => $params['webform_title']), $options);
+      $message['subject'] = t('Reservations created from webform @title', ['@title' => $params['webform_title']], $options);
       $message['body'][] = SafeMarkup::checkPlain($params['message']);
       break;
   }
