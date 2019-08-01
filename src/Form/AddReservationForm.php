@@ -272,7 +272,9 @@ class AddReservationForm extends FormBase {
 
     $units_ids = [];
     foreach ($node->get('field_availability_' . $bee_settings['bookable_type']) as $unit) {
-      $units_ids[] = $unit->entity->id();
+      if ($unit->entity) {
+        $units_ids[] = $unit->entity->id();
+      }
     }
 
     if ($bee_settings['bookable_type'] == 'daily') {

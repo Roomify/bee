@@ -26,7 +26,9 @@ class BeeController extends ControllerBase implements ContainerInjectionInterfac
 
     $bat_unit_ids = [];
     foreach ($node->get('field_availability_' . $bee_settings['bookable_type']) as $unit) {
-      $bat_unit_ids[] = $unit->entity->id();
+      if ($unit->entity) {
+        $bat_unit_ids[] = $unit->entity->id();
+      }
     }
 
     if ($bee_settings['bookable_type'] == 'daily') {

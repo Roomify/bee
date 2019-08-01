@@ -91,7 +91,9 @@ class OrderEventSubscriber implements EventSubscriberInterface {
 
     $units_ids = [];
     foreach ($node->get('field_availability_' . $bee_settings['bookable_type']) as $unit) {
-      $units_ids[] = $unit->entity->id();
+      if ($unit->entity) {
+        $units_ids[] = $unit->entity->id();
+      }
     }
 
     $temp_end_date = clone($end_date);

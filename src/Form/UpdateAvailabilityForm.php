@@ -238,7 +238,9 @@ class UpdateAvailabilityForm extends FormBase {
 
     $units_ids = [];
     foreach ($node->get('field_availability_hourly') as $unit) {
-      $units_ids[] = $unit->entity->id();
+      if ($unit->entity) {
+        $units_ids[] = $unit->entity->id();
+      }
     }
 
     $units = array_intersect($units_ids, $available_units);
@@ -292,7 +294,9 @@ class UpdateAvailabilityForm extends FormBase {
 
     $units_ids = [];
     foreach ($node->get('field_availability_hourly') as $unit) {
-      $units_ids[] = $unit->entity->id();
+      if ($unit->entity) {
+        $units_ids[] = $unit->entity->id();
+      }
     }
 
     $units = array_intersect($units_ids, $available_units);
