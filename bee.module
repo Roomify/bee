@@ -280,13 +280,13 @@ function bee_node_add_more_units_submit($form, FormStateInterface $form_state) {
 
     $form['bee']['number_units']['#value'] = '';
 
-    drupal_set_message(t('@number Units added.', ['@number' => $number_units]));
+    \Drupal::messenger()->addMessage(t('@number Units added.', ['@number' => $number_units]));
   }
   elseif ($number_units === '') {
-    drupal_set_message(t('Number of units is required.'), 'error');
+    \Drupal::messenger()->addError(t('Number of units is required.'));
   }
   else {
-    drupal_set_message(t('Number of units must be a positive integer.'), 'error');
+    \Drupal::messenger()->addError(t('Number of units must be a positive integer.'));
   }
 
   $form['bee']['#open'] = TRUE;
@@ -362,7 +362,7 @@ function bee_node_type_edit_form_submit(array &$form, FormStateInterface $form_s
       bee_add_price_frequency_field('field_price_frequency', $node_type);
 
       if (!$form['bee']['payment']['#default_value']) {
-        $node_storage = \Drupal::entityManager()->getStorage('node');
+        $node_storage = \Drupal::entityTypeManager()->getStorage('node');
 
         $query = \Drupal::entityQuery('node')
           ->condition('type', $node_type->id());
@@ -383,7 +383,7 @@ function bee_node_type_edit_form_submit(array &$form, FormStateInterface $form_s
   }
   else {
     if (isset($bee_settings['type_id'])) {
-      $node_storage = \Drupal::entityManager()->getStorage('node');
+      $node_storage = \Drupal::entityTypeManager()->getStorage('node');
 
       $query = \Drupal::entityQuery('node')
         ->condition('type', $node_type->id());

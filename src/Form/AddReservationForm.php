@@ -206,7 +206,7 @@ class AddReservationForm extends FormBase {
         $cart_manager->emptyCart($cart);
       }
 
-      $order_item = \Drupal::entityManager()->getStorage('commerce_order_item')->create([
+      $order_item = \Drupal::entityTypeManager()->getStorage('commerce_order_item')->create([
         'title' => $node->label(),
         'type' => 'bee',
         'purchased_entity' => $product_variation->id(),
@@ -250,7 +250,7 @@ class AddReservationForm extends FormBase {
       $event->set('event_bat_unit_reference', reset($available_units));
       $event->save();
 
-      drupal_set_message(t('Reservation created!'));
+      $this->messenger()->addMessage(t('Reservation created!'));
 
       $form_state->setRedirect('entity.node.canonical', ['node' => $node->id()]);
     }

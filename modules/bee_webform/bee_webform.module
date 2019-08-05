@@ -1,6 +1,6 @@
 <?php
 
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Render\HtmlEscapedText;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -51,7 +51,7 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
       $nids = _bee_webform_get_nodeids_by_type($webform_submission, $bee_element_id);
 
       foreach ($nids as $nid) {
-        $node = node_load($nid);
+        $node = Node::load($nid);
 
         if ($node_available_units = bee_webform_get_available_units_for_node($node, $webform_submission, $bee_element_id)) {
 
@@ -142,13 +142,13 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
       $result = $mailManager->mail($module, $key, $to, $langcode, $params, NULL, $send);
       if ($result['result'] !== true) {
         $message = t('There was a problem sending your email notification to @email for creating a webform BEE reservation.', ['@email' => $to]);
-        drupal_set_message($message, 'error');
+        \Drupal::messenger()->addError($message);
         \Drupal::logger('bee_webform')->error($message);
         return;
       }
 
       $message = t('An email notification has been sent to @email for creating a webform BEE reservation.', ['@email' => $to]);
-      drupal_set_message($message);
+      \Drupal::messenger()->addMessage($message);
       \Drupal::logger('bee_webform')->notice($message);
     }
   }
@@ -299,7 +299,7 @@ function bee_webform_mail($key, &$message, $params) {
     case 'bee_webform_submission':
       $message['from'] = \Drupal::config('system.site')->get('mail');
       $message['subject'] = t('Reservations created from webform @title', ['@title' => $params['webform_title']], $options);
-      $message['body'][] = SafeMarkup::checkPlain($params['message']);
+      $message['body'][] = new HtmlEscapedText($params['message']);
       break;
   }
 }
@@ -366,7 +366,7 @@ function bee_webform_add_reservation_to_cart(Webform $webform, WebformSubmission
       $nids = _bee_webform_get_nodeids_by_type($webform_submission, $bee_element_id);
 
       foreach ($nids as $nid) {
-        $node = node_load($nid);
+        $node = Node::load($nid);
 
         if (bee_webform_get_available_units_for_node($node, $webform_submission, $bee_element_id)) {
           $booking = bat_booking_create([
