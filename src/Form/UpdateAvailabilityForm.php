@@ -237,7 +237,7 @@ class UpdateAvailabilityForm extends FormBase {
     $available_units = bat_event_get_matching_units($start_date, $temp_end_date, ['bee_daily_available', 'bee_daily_not_available'], $type_id, 'availability_daily');
 
     $units_ids = [];
-    foreach ($node->get('field_availability_hourly') as $unit) {
+    foreach ($node->get('field_availability_daily') as $unit) {
       if ($unit->entity) {
         $units_ids[] = $unit->entity->id();
       }
