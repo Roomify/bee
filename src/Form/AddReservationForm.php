@@ -93,8 +93,8 @@ class AddReservationForm extends FormBase {
     }
 
     if ($dates_valid) {
-      if ($end_date < $start_date) {
-        $form_state->setErrorByName('end_date', $this->t('End date must be on or after the start date.'));
+      if ($end_date <= $start_date) {
+        $form_state->setErrorByName('end_date', $this->t('End date must be after the start date.'));
         return;
       }
 
