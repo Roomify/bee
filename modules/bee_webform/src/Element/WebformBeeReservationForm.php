@@ -65,6 +65,40 @@ class WebformBeeReservationForm extends WebformCompositeBase {
           '#type' => 'number',
           '#title' => t('Capacity'),
         ];
+
+        $elements['repeat'] = [
+          '#type' => 'checkbox',
+          '#title' => t('This booking repeats'),
+          '#prefix' => '<div class="form-row">',
+        ];
+
+        $elements['repeat_frequency'] = [
+          '#type' => 'select',
+          '#title' => t('Repeat frequency'),
+          '#options' => [
+            'daily' => t('Daily'),
+            'weekly' => t('Weekly'),
+            'monthly' => t('Monthly'),
+          ],
+          '#states' => [
+            'visible' => [
+              ':input[name="bee[repeat]"]' => ['checked' => TRUE],
+            ],
+          ],
+        ];
+
+        $elements['repeat_until'] = [
+          '#type' => 'date',
+          '#title' => t('Repeat until'),
+          '#states' => [
+            'visible' => [
+              ':input[name="bee[repeat]"]' => ['checked' => TRUE],
+            ],
+          ],
+          '#suffix' => '</div>',
+        ];
+
+        $elements['#attached']['library'][] = 'bee/bee_form';
       }
     }
 

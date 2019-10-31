@@ -1,5 +1,6 @@
 <?php
 
+use Drupal\Core\Config\FileStorage;
 use Drupal\user\RoleInterface;
 
 /**
@@ -81,6 +82,8 @@ function bee_install() {
     'view calendar data for any availability_daily event' => TRUE,
     'view calendar data for any availability_hourly event' => TRUE,
   ]);
+
+  bee_event_series_types_add_fields();
 }
 
 /**
@@ -145,4 +148,30 @@ function bee_update_8002() {
   if (bat_booking_type_load('bee') !== NULL) {
     bee_set_booking_event_reference_field_cardinality();
   }
+}
+
+/**
+ * Enable module "BAT Event Series"
+ */
+function bee_update_8003() {
+  \Drupal::service('module_installer')->install(['bat_event_series']);
+}
+
+/**
+ * Import BAT Event series Types.
+ */
+function bee_update_8004() {
+  $configs = [
+    'bat_event_series.event_series_type.availability_daily',
+    'bat_event_series.event_series_type.availability_hourly',
+  ];
+
+  $path = drupal_get_path('module', 'bee') . '/config/install';
+  $source = new FileStorage($path);
+  $config_storage = \Drupal::service('config.storage');
+  foreach ($configs as $config) {
+    $config_storage->write($config, $source->read($config));
+  }
+
+  bee_event_series_types_add_fields();
 }

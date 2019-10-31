@@ -1,0 +1,7 @@
+langcode: en
+status: true
+dependencies: {  }
+name: 'Availability Hourly'
+type: availability_hourly
+event_granularity: bat_hourly
+target_event_type: availability_hourly

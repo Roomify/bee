@@ -6,6 +6,9 @@
 function bee_webform_install() {
   bee_webform_add_event_webform_reference_field('field_event_webform_submission', 'availability_daily');
   bee_webform_add_event_webform_reference_field('field_event_webform_submission', 'availability_hourly');
+
+  bee_webform_add_event_series_webform_reference_field('field_event_webform_submission', 'availability_daily');
+  bee_webform_add_event_series_webform_reference_field('field_event_webform_submission', 'availability_hourly');
 }
 
 /**
@@ -15,5 +18,17 @@ function bee_webform_uninstall() {
   Drupal::configFactory()->getEditable('field.field.bat_event.availability_daily.field_event_webform_submission')->delete();
   Drupal::configFactory()->getEditable('field.field.bat_event.availability_hourly.field_event_webform_submission')->delete();
 
+  Drupal::configFactory()->getEditable('field.field.bat_event_series.availability_daily.field_event_webform_submission')->delete();
+  Drupal::configFactory()->getEditable('field.field.bat_event_series.availability_hourly.field_event_webform_submission')->delete();
+
   Drupal::configFactory()->getEditable('field.storage.bat_event.field_event_webform_submission')->delete();
+  Drupal::configFactory()->getEditable('field.storage.bat_event_series.field_event_webform_submission')->delete();
+}
+
+/**
+ * Add field "field_event_webform_submission" to the event series types.
+ */
+function bee_webform_update_8001() {
+  bee_webform_add_event_series_webform_reference_field('field_event_webform_submission', 'availability_daily');
+  bee_webform_add_event_series_webform_reference_field('field_event_webform_submission', 'availability_hourly');
 }

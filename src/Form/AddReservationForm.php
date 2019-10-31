@@ -5,9 +5,11 @@ namespace Drupal\bee\Form;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Datetime\DrupalDateTime;
+use Drupal\bat_event_series\Entity\EventSeries;
 use Drupal\node\NodeInterface;
 use Drupal\node\Entity\Node;
 use Drupal\office_hours\OfficeHoursDateHelper;
+use RRule\RRule;
 
 class AddReservationForm extends FormBase {
 
@@ -21,7 +23,7 @@ class AddReservationForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, NodeInterface $node = NULL) {
+  public function buildForm(array $form, FormStateInterface $form_state, NodeInterface $node = NULL, EventSeries $bat_event_series = NULL) {
     $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
 
     $today = new \DateTime();
@@ -51,10 +53,52 @@ class AddReservationForm extends FormBase {
       '#date_increment' => 60,
     ];
 
+    if ($bat_event_series) {
+      $form['event_series'] = [
+        '#type' => 'hidden',
+        '#value' => $bat_event_series->id(),
+      ];
+    }
+    else {
+      $form['repeat'] = [
+        '#type' => 'checkbox',
+        '#title' => t('This booking repeats'),
+        '#prefix' => '<div class="form-row">',
+      ];
+
+      $form['repeat_frequency'] = [
+        '#type' => 'select',
+        '#title' => t('Repeat frequency'),
+        '#options' => [
+          'daily' => t('Daily'),
+          'weekly' => t('Weekly'),
+          'monthly' => t('Monthly'),
+        ],
+        '#states' => [
+          'visible' => [
+            ':input[name="repeat"]' => ['checked' => TRUE],
+          ],
+        ],
+      ];
+
+      $form['repeat_until'] = [
+        '#type' => 'date',
+        '#title' => t('Repeat until'),
+        '#states' => [
+          'visible' => [
+            ':input[name="repeat"]' => ['checked' => TRUE],
+          ],
+        ],
+        '#suffix' => '</div>',
+      ];
+    }
+
     $form['submit'] = [
       '#type' => 'submit',
       '#value' => t('Add Reservation'),
     ];
+
+    $form['#attached']['library'][] = 'bee/bee_form';
 
     return $form;
   }
@@ -155,6 +199,12 @@ class AddReservationForm extends FormBase {
         $form_state->setError($form, t('No available units.'));
       }
     }
+
+    if ($values['repeat']) {
+      if (empty($values['repeat_until'])) {
+        $form_state->setErrorByName('repeat_until', t('Repeat until is required if "This booking repeats" is checked.'));
+      }
+    }
   }
 
   /**
@@ -225,7 +275,25 @@ class AddReservationForm extends FormBase {
       if ($bee_settings['bookable_type'] == 'daily') {
         $booked_state = bat_event_load_state_by_machine_name('bee_daily_booked');
 
-        $event = bat_event_create(['type' => 'availability_daily']);
+        if ($values['repeat']) {
+          $repeat_until = new \DateTime($values['repeat_until'] . 'T000000Z');
+
+          $label = t('Reservations for @node Every Wednesday from 11AM-1PM from @start_date -> @end_date', ['@node' => $node->label(), '@start_date' => $start_date->format('M j Y'), '@end_date' => $repeat_until->format('M j Y')]);
+          $rrule = new RRule([
+            'FREQ' => strtoupper($values['repeat_frequency']),
+            'UNTIL' => $values['repeat_until'] . 'T000000Z',
+          ]);
+
+          $event = bat_event_series_create([
+            'type' => 'availability_daily',
+            'label' => $label,
+            'rrule' => $rrule->rfcString(),
+          ]);
+        }
+        else {
+          $event = bat_event_create(['type' => 'availability_daily']);
+        }
+
         $event_dates = [
           'value' => $start_date->format('Y-m-d\TH:i:00'),
           'end_value' => $end_date->format('Y-m-d\TH:i:00'),
@@ -236,7 +304,40 @@ class AddReservationForm extends FormBase {
       else {
         $booked_state = bat_event_load_state_by_machine_name('bee_hourly_booked');
 
-        $event = bat_event_create(['type' => 'availability_hourly']);
+        if ($values['repeat']) {
+          $repeat_until = new \DateTime($values['repeat_until'] . 'T000000Z');
+
+          $frequency = t('Day');
+          if ($values['repeat_frequency'] == 'weekly') {
+            $frequency = $start_date->format('l');
+          } elseif ($values['repeat_frequency'] == 'monthly') {
+            $frequency = t('@day of Month', ['@day' => $start_date->format('jS')]);
+          }
+
+          $label = t('Reservations for @node Every @frequency from @start_time-@end_time from @start_date -> @end_date', [
+            '@node' => $node->label(),
+            '@frequency' => $frequency,
+            '@start_time' => $start_date->format('gA'),
+            '@end_time' => $end_date->format('gA'),
+            '@start_date' => $start_date->format('M j Y'),
+            '@end_date' => $repeat_until->format('M j Y'),
+          ]);
+
+          $rrule = new RRule([
+            'FREQ' => strtoupper($values['repeat_frequency']),
+            'UNTIL' => $values['repeat_until'] . 'T000000Z',
+          ]);
+
+          $event = bat_event_series_create([
+            'type' => 'availability_hourly',
+            'label' => $label,
+            'rrule' => $rrule->rfcString(),
+          ]);
+        }
+        else {
+          $event = bat_event_create(['type' => 'availability_hourly']);
+        }
+
         $event_dates = [
           'value' => $start_date->format('Y-m-d\TH:i:00'),
           'end_value' => $end_date->format('Y-m-d\TH:i:00'),
@@ -248,11 +349,20 @@ class AddReservationForm extends FormBase {
       $available_units = $this->getAvailableUnits($values);
 
       $event->set('event_bat_unit_reference', reset($available_units));
+
+      if (isset($values['event_series'])) {
+        $event->set('event_series', $values['event_series']);
+      }
+
       $event->save();
 
       $this->messenger()->addMessage(t('Reservation created!'));
 
-      $form_state->setRedirect('entity.node.canonical', ['node' => $node->id()]);
+      if (isset($values['event_series'])) {
+        $form_state->setRedirect('entity.bat_event_series.canonical', ['bat_event_series' => $values['event_series']]);
+      } else {
+        $form_state->setRedirect('entity.node.canonical', ['node' => $node->id()]);
+      }
     }
   }
 

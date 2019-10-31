@@ -1260,3 +1260,45 @@ function bee_create_node_product($node) {
 
   return $product;
 }
+
+function bee_event_series_types_add_fields() {
+  bat_event_series_type_add_event_dates_field('availability_daily');
+  bat_event_series_type_add_target_entity_field('availability_daily', 'bat_unit');
+  bat_event_series_type_add_event_state_reference('availability_daily');
+
+  bat_event_series_type_add_event_dates_field('availability_hourly');
+  bat_event_series_type_add_target_entity_field('availability_hourly', 'bat_unit');
+  bat_event_series_type_add_event_state_reference('availability_hourly');
+}
+
+/**
+ * Implements template_preprocess_bat_event_series().
+ */
+function bee_preprocess_bat_event_series(array &$variables) {
+  // Fetch Event series Entity Object.
+  $event_series = $variables['elements']['#bat_event_series'];
+
+  $bat_unit = $event_series->get('event_bat_unit_reference')->entity;
+
+  $node_storage = \Drupal::entityTypeManager()->getStorage('node');
+
+  $nids = \Drupal::entityQuery('node')
+    ->condition('field_availability_hourly', $bat_unit->id())
+    ->execute();
+
+  $node = $node_storage->load(reset($nids));
+
+  $variables['content']['add_reservation'] = [
+    '#theme' => 'menu_local_action',
+    '#link' => [
+      'title' => t('Add reservation'),
+      'url' => Url::fromRoute('bee.bat_event_series.add_reservation', [
+        'node' => $node->id(),
+        'bat_event_series' => $event_series->id(),
+      ]),
+    ],
+    '#prefix' => '<div class="action-links">',
+    '#suffix' => '</div>',
+    '#weight' => -100,
+  ];
+}
