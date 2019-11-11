@@ -193,14 +193,16 @@ class AddReservationForm extends FormBase {
         }
       }
 
-      $available_units = $this->getAvailableUnits($values);
+      if (!(isset($values['repeat']) && $values['repeat'])) {
+        $available_units = $this->getAvailableUnits($values);
 
-      if (empty($available_units)) {
-        $form_state->setError($form, t('No available units.'));
+        if (empty($available_units)) {
+          $form_state->setError($form, t('No available units.'));
+        }
       }
     }
 
-    if ($values['repeat']) {
+    if (isset($values['repeat']) && $values['repeat']) {
       if (empty($values['repeat_until'])) {
         $form_state->setErrorByName('repeat_until', t('Repeat until is required if "This booking repeats" is checked.'));
       }
@@ -275,7 +277,7 @@ class AddReservationForm extends FormBase {
       if ($bee_settings['bookable_type'] == 'daily') {
         $booked_state = bat_event_load_state_by_machine_name('bee_daily_booked');
 
-        if ($values['repeat']) {
+        if (isset($values['repeat']) && $values['repeat']) {
           $repeat_until = new \DateTime($values['repeat_until'] . 'T000000Z');
 
           $label = t('Reservations for @node Every Wednesday from 11AM-1PM from @start_date -> @end_date', ['@node' => $node->label(), '@start_date' => $start_date->format('M j Y'), '@end_date' => $repeat_until->format('M j Y')]);
@@ -304,7 +306,7 @@ class AddReservationForm extends FormBase {
       else {
         $booked_state = bat_event_load_state_by_machine_name('bee_hourly_booked');
 
-        if ($values['repeat']) {
+        if (isset($values['repeat']) && $values['repeat']) {
           $repeat_until = new \DateTime($values['repeat_until'] . 'T000000Z');
 
           $frequency = t('Day');
@@ -346,9 +348,20 @@ class AddReservationForm extends FormBase {
         $event->set('event_state_reference', $booked_state->id());
       }
 
-      $available_units = $this->getAvailableUnits($values);
+      if (isset($values['repeat']) && $values['repeat']) {
+        $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
 
-      $event->set('event_bat_unit_reference', reset($available_units));
+        foreach ($node->get('field_availability_' . $bee_settings['bookable_type']) as $unit) {
+          if ($unit->entity) {
+            $event->set('event_bat_unit_reference', $unit->entity->id());
+          }
+        }
+      }
+      else {
+        $available_units = $this->getAvailableUnits($values);
+
+        $event->set('event_bat_unit_reference', reset($available_units));
+      }
 
       if (isset($values['event_series'])) {
         $event->set('event_series', $values['event_series']);
