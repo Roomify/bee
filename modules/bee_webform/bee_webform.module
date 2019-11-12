@@ -98,7 +98,7 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
 
         foreach ($node_available_units as $unit) {
           if ($value['repeat']) {
-            $repeat_until = new \DateTime($value['repeat_until'] . 'T000000Z');
+            $repeat_until = new \DateTime($value['repeat_until'] . 'T235959Z');
 
             $frequency = t('Day');
             if ($value['repeat_frequency'] == 'weekly') {
@@ -118,7 +118,7 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
 
             $rrule = new RRule([
               'FREQ' => strtoupper($value['repeat_frequency']),
-              'UNTIL' => $value['repeat_until'] . 'T000000Z',
+              'UNTIL' => $value['repeat_until'] . 'T235959Z',
             ]);
 
             $event = bat_event_series_create([

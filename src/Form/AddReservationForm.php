@@ -278,12 +278,12 @@ class AddReservationForm extends FormBase {
         $booked_state = bat_event_load_state_by_machine_name('bee_daily_booked');
 
         if (isset($values['repeat']) && $values['repeat']) {
-          $repeat_until = new \DateTime($values['repeat_until'] . 'T000000Z');
+          $repeat_until = new \DateTime($values['repeat_until'] . 'T235959Z');
 
           $label = t('Reservations for @node Every Wednesday from 11AM-1PM from @start_date -> @end_date', ['@node' => $node->label(), '@start_date' => $start_date->format('M j Y'), '@end_date' => $repeat_until->format('M j Y')]);
           $rrule = new RRule([
             'FREQ' => strtoupper($values['repeat_frequency']),
-            'UNTIL' => $values['repeat_until'] . 'T000000Z',
+            'UNTIL' => $values['repeat_until'] . 'T235959Z',
           ]);
 
           $event = bat_event_series_create([
@@ -307,7 +307,7 @@ class AddReservationForm extends FormBase {
         $booked_state = bat_event_load_state_by_machine_name('bee_hourly_booked');
 
         if (isset($values['repeat']) && $values['repeat']) {
-          $repeat_until = new \DateTime($values['repeat_until'] . 'T000000Z');
+          $repeat_until = new \DateTime($values['repeat_until'] . 'T235959Z');
 
           $frequency = t('Day');
           if ($values['repeat_frequency'] == 'weekly') {
@@ -327,7 +327,7 @@ class AddReservationForm extends FormBase {
 
           $rrule = new RRule([
             'FREQ' => strtoupper($values['repeat_frequency']),
-            'UNTIL' => $values['repeat_until'] . 'T000000Z',
+            'UNTIL' => $values['repeat_until'] . 'T235959Z',
           ]);
 
           $event = bat_event_series_create([
