@@ -6,4 +6,5 @@ package: bat
 
 dependencies:
   - bee:bee
+  - token:token
   - webform:webform
