@@ -237,6 +237,12 @@ class AddReservationForm extends FormBase {
       ]);
       $booking->set('booking_start_date', $start_date->format('Y-m-d\TH:i:s'));
       $booking->set('booking_end_date', $end_date->format('Y-m-d\TH:i:s'));
+
+      if (isset($values['repeat']) && $values['repeat']) {
+        $booking->set('booking_repeat_frequency', $values['repeat_frequency']);
+        $booking->set('booking_repeat_until', $values['repeat_until']);
+      }
+
       $booking->save();
 
       $product = $node->get('field_product')->entity;
@@ -280,7 +286,20 @@ class AddReservationForm extends FormBase {
         if (isset($values['repeat']) && $values['repeat']) {
           $repeat_until = new \DateTime($values['repeat_until'] . 'T235959Z');
 
-          $label = t('Reservations for @node Every Wednesday from 11AM-1PM from @start_date -> @end_date', ['@node' => $node->label(), '@start_date' => $start_date->format('M j Y'), '@end_date' => $repeat_until->format('M j Y')]);
+          $frequency = t('Day');
+          if ($values['repeat_frequency'] == 'weekly') {
+            $frequency = $start_date->format('l');
+          } elseif ($values['repeat_frequency'] == 'monthly') {
+            $frequency = t('@day of Month', ['@day' => $start_date->format('jS')]);
+          }
+
+          $label = t('Reservations for @node Every @frequency from @start_date -> @end_date', [
+            '@node' => $node->label(),
+            '@frequency' => $frequency,
+            '@start_date' => $start_date->format('M j Y'),
+            '@end_date' => $repeat_until->format('M j Y'),
+          ]);
+
           $rrule = new RRule([
             'FREQ' => strtoupper($values['repeat_frequency']),
             'UNTIL' => $values['repeat_until'] . 'T235959Z',

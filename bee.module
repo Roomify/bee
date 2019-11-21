@@ -1180,6 +1180,8 @@ function bee_create_bee_booking_type() {
 
     bee_set_booking_event_reference_field_cardinality();
     bee_create_booking_capacity_field();
+    bee_create_booking_repeat_frequency_field();
+    bee_create_booking_repeat_until_field();
   }
 }
 
@@ -1190,6 +1192,81 @@ function bee_set_booking_event_reference_field_cardinality() {
   $field_storage = FieldStorageConfig::loadByName('bat_booking', 'booking_event_reference');
   $field_storage->setCardinality(-1);
   $field_storage->save();
+}
+
+/**
+ * Add booking "Repeat frequency" field.
+ */
+function bee_create_booking_repeat_frequency_field() {
+  $field_name = 'booking_repeat_frequency';
+
+  $field_storage = FieldStorageConfig::loadByName('bat_booking', $field_name);
+  $field = FieldConfig::loadByName('bat_booking', 'bee', $field_name);
+
+  if (empty($field_storage)) {
+    $field_storage = FieldStorageConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => 'bat_booking',
+      'type' => 'list_string',
+      'cardinality' => 1,
+      'locked' => 1,
+      'settings' => [
+        'allowed_values' => [
+          'daily' => 'Daily',
+          'weekly' => 'Weekly',
+          'monthly' => 'Monthly',
+        ],
+        'allowed_values_function' => '',
+      ],
+    ]);
+    $field_storage->save();
+  }
+
+  if (empty($field)) {
+    $field = FieldConfig::create([
+      'field_storage' => $field_storage,
+      'entity_type' => 'bat_booking',
+      'label' => 'Repeat frequency',
+      'bundle' => 'bee',
+      'required' => FALSE,
+    ]);
+    $field->save();
+  }
+}
+
+/**
+ * Add booking "Repeat until" field.
+ */
+function bee_create_booking_repeat_until_field() {
+  $field_name = 'booking_repeat_until';
+
+  $field_storage = FieldStorageConfig::loadByName('bat_booking', $field_name);
+  $field = FieldConfig::loadByName('bat_booking', 'bee', $field_name);
+
+  if (empty($field_storage)) {
+    $field_storage = FieldStorageConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => 'bat_booking',
+      'type' => 'datetime',
+      'cardinality' => 1,
+      'locked' => 1,
+      'settings' => [
+        'datetime_type' => 'date',
+      ],
+    ]);
+    $field_storage->save();
+  }
+
+  if (empty($field)) {
+    $field = FieldConfig::create([
+      'field_storage' => $field_storage,
+      'entity_type' => 'bat_booking',
+      'label' => 'Repeat until',
+      'bundle' => 'bee',
+      'required' => FALSE,
+    ]);
+    $field->save();
+  }
 }
 
 /**

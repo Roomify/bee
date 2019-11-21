@@ -175,3 +175,13 @@ function bee_update_8004() {
 
   bee_event_series_types_add_fields();
 }
+
+/**
+ * Add booking fields "Repeat frequency" and "Repeat until".
+ */
+function bee_update_8005() {
+  if (bat_booking_type_load('bee') !== NULL) {
+    bee_create_booking_repeat_frequency_field();
+    bee_create_booking_repeat_until_field();
+  }
+}
