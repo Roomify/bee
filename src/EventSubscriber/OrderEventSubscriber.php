@@ -4,6 +4,7 @@ namespace Drupal\bee\EventSubscriber;
 
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Drupal\state_machine\Event\WorkflowTransitionEvent;
+use RRule\RRule;
 
 class OrderEventSubscriber implements EventSubscriberInterface {
 
@@ -49,25 +50,67 @@ class OrderEventSubscriber implements EventSubscriberInterface {
             $event_type = 'availability_hourly';
           }
 
-          $capacity = ($booking->get('booking_capacity')->value) ? ($booking->get('booking_capacity')->value) : 1;
-
           $events = [];
 
-          for ($i = 0; $i < $capacity; $i++) {
-            $event = bat_event_create(['type' => $event_type]);
+          $repeat_frequency = $booking->get('booking_repeat_frequency')->value;
+          $repeat_until = $booking->get('booking_repeat_until')->value;
+
+          if ($repeat_frequency && $repeat_until) {
+            $repeat_until_object = new \DateTime($repeat_until);
+
+            $label = $this->getEventSeriesLabel($node, $bee_settings['bookable_type'], $start_date, $end_date, $repeat_frequency, $repeat_until_object);
+
+            $rrule = new RRule([
+              'FREQ' => strtoupper($repeat_frequency),
+              'UNTIL' => $repeat_until . 'T235959Z',
+            ]);
+
+            $event_series = bat_event_series_create([
+              'type' => $event_type,
+              'label' => $label,
+              'rrule' => $rrule->rfcString(),
+            ]);
             $event_dates = [
               'value' => $start_date->format('Y-m-d\TH:i:00'),
               'end_value' => $end_date->format('Y-m-d\TH:i:00'),
             ];
-            $event->set('event_dates', $event_dates);
-            $event->set('event_state_reference', $booked_state->id());
+            $event_series->set('event_dates', $event_dates);
+            $event_series->set('event_state_reference', $booked_state->id());
 
             $available_units = $this->getAvailableUnits($node, $start_date, $end_date);
 
-            $event->set('event_bat_unit_reference', reset($available_units));
-            $event->save();
+            $event_series->set('event_bat_unit_reference', reset($available_units));
 
-            $events[] = $event;
+            $event_series->save();
+
+            $query = \Drupal::entityQuery('bat_event')
+              ->condition('event_series.target_id', $event_series->id());
+            $events_created = $query->execute();
+
+            foreach ($events_created as $event_id) {
+              $event = bat_event_load($event_id);
+              $events[] = $event;
+            }            
+          }
+          else {
+            $capacity = ($booking->get('booking_capacity')->value) ? ($booking->get('booking_capacity')->value) : 1;
+
+            for ($i = 0; $i < $capacity; $i++) {
+              $event = bat_event_create(['type' => $event_type]);
+              $event_dates = [
+                'value' => $start_date->format('Y-m-d\TH:i:00'),
+                'end_value' => $end_date->format('Y-m-d\TH:i:00'),
+              ];
+              $event->set('event_dates', $event_dates);
+              $event->set('event_state_reference', $booked_state->id());
+
+              $available_units = $this->getAvailableUnits($node, $start_date, $end_date);
+
+              $event->set('event_bat_unit_reference', reset($available_units));
+              $event->save();
+
+              $events[] = $event;
+            }
           }
 
           $booking->set('booking_event_reference', $events);
@@ -107,6 +150,46 @@ class OrderEventSubscriber implements EventSubscriberInterface {
     }
 
     return array_intersect($units_ids, $available_units_ids);
+  }
+
+  /**
+   * @param $node
+   * @param $bookable_type
+   * @param $repeat_frequency
+   * @param $start_date
+   * @param $end_date
+   * @param $repeat_until
+   *
+   * @return string
+   */
+  protected function getEventSeriesLabel($node, $bookable_type, $start_date, $end_date, $repeat_frequency, $repeat_until) {
+    $frequency = t('Day');
+    if ($repeat_frequency == 'weekly') {
+      $frequency = $start_date->format('l');
+    } elseif ($repeat_frequency == 'monthly') {
+      $frequency = t('@day of Month', ['@day' => $start_date->format('jS')]);
+    }
+
+    if ($bookable_type == 'daily') {
+      $label = t('Reservations for @node Every @frequency from @start_date -> @end_date', [
+        '@node' => $node->label(),
+        '@frequency' => $frequency,
+        '@start_date' => $start_date->format('M j Y'),
+        '@end_date' => $repeat_until->format('M j Y'),
+      ]);
+    }
+    else {
+      $label = t('Reservations for @node Every @frequency from @start_time-@end_time from @start_date -> @end_date', [
+        '@node' => $node->label(),
+        '@frequency' => $frequency,
+        '@start_time' => $start_date->format('gA'),
+        '@end_time' => $end_date->format('gA'),
+        '@start_date' => $start_date->format('M j Y'),
+        '@end_date' => $repeat_until->format('M j Y'),
+      ]);
+    }
+
+    return $label;
   }
 
 }

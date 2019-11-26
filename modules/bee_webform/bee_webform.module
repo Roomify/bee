@@ -7,6 +7,7 @@ use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\node\Entity\Node;
 use Drupal\webform\Entity\Webform;
 use Drupal\webform\Entity\WebformSubmission;
+use RRule\RRule;
 
 /**
  * Implements hook_form_alter().
@@ -96,7 +97,40 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
         $end_date = new \DateTime($end_date);
 
         foreach ($node_available_units as $unit) {
-          $event = bat_event_create(['type' => $event_type]);
+          if ($value['repeat']) {
+            $repeat_until = new \DateTime($value['repeat_until'] . 'T235959Z');
+
+            $frequency = t('Day');
+            if ($value['repeat_frequency'] == 'weekly') {
+              $frequency = $start_date->format('l');
+            } elseif ($value['repeat_frequency'] == 'monthly') {
+              $frequency = t('@day of Month', ['@day' => $start_date->format('jS')]);
+            }
+
+            $label = t('Reservations for @node Every @frequency from @start_time-@end_time from @start_date -> @end_date', [
+              '@node' => $node->label(),
+              '@frequency' => $frequency,
+              '@start_time' => $start_date->format('gA'),
+              '@end_time' => $end_date->format('gA'),
+              '@start_date' => $start_date->format('M j Y'),
+              '@end_date' => $repeat_until->format('M j Y'),
+            ]);
+
+            $rrule = new RRule([
+              'FREQ' => strtoupper($value['repeat_frequency']),
+              'UNTIL' => $value['repeat_until'] . 'T235959Z',
+            ]);
+
+            $event = bat_event_series_create([
+              'type' => $event_type,
+              'label' => $label,
+              'rrule' => $rrule->rfcString(),
+            ]);
+          }
+          else {
+            $event = bat_event_create(['type' => $event_type]);
+          }
+
           $event_dates = [
             'value' => $start_date->format('Y-m-d\TH:i:00'),
             'end_value' => $end_date->format('Y-m-d\TH:i:00'),
@@ -108,7 +142,26 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
           $event->set('event_bat_unit_reference', $unit);
           $event->save();
 
-          $events_created[] = $event->id();
+          if ($value['repeat']) {
+            $query = \Drupal::entityQuery('bat_event')
+              ->condition('event_series.target_id', $event->id());
+            $events_created = $query->execute();
+
+            foreach ($events_created as $event_id) {
+              $repeat_event = bat_event_load($event_id);
+              $repeat_event->set('field_event_webform_submission', $webform_submission->id());
+              $repeat_event->save();
+            }
+          }
+          else {
+            $events_created[] = $event->id();
+          }
+
+          $data = $webform_submission->getData();
+          $data[$bee_element_id]['events'] = implode(',', $events_created);
+
+          $webform_submission->setElementData($bee_element_id, $data[$bee_element_id]);
+          $webform_submission->save();
 
           if (++$index == $value['capacity']) {
             break 2;
@@ -133,10 +186,11 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
 
       $module = 'bee_webform';
       $key = 'bee_webform_submission';
-      $to = $webform->getOwner()->getEmail();
+      $webform_owner = ($webform->getOwner()) ? $webform->getOwner() : \Drupal::currentUser();
+      $to = $webform_owner->getEmail();
       $params['webform_title'] = $webform->get('title');
       $params['message'] = $message;
-      $langcode = $webform->getOwner()->getPreferredLangcode();
+      $langcode = $webform_owner->getPreferredLangcode();
       $send = TRUE;
 
       $result = $mailManager->mail($module, $key, $to, $langcode, $params, NULL, $send);
@@ -288,6 +342,44 @@ function bee_webform_add_event_webform_reference_field($field_name, $event_type)
 }
 
 /**
+ * @param $field_name
+ * @param $event_type
+ */
+function bee_webform_add_event_series_webform_reference_field($field_name, $event_type) {
+  $field_storage = FieldStorageConfig::loadByName('bat_event_series', $field_name);
+  $field = FieldConfig::loadByName('bat_event_series', $event_type, $field_name);
+
+  if (empty($field_storage)) {
+    $field_storage = FieldStorageConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => 'bat_event_series',
+      'type' => 'entity_reference',
+      'cardinality' => 1,
+      'locked' => 1,
+      'settings' => [
+        'target_type' => 'webform_submission',
+      ],
+    ]);
+    $field_storage->save();
+  }
+
+  if (empty($field)) {
+    $field = FieldConfig::create([
+      'field_storage' => $field_storage,
+      'entity_type' => 'bat_event_series',
+      'label' => 'Webform',
+      'bundle' => $event_type,
+      'required' => FALSE,
+      'settings' => [
+        'handler' => 'default',
+        'handler_settings' => [],
+      ],
+    ]);
+    $field->save();
+  }
+}
+
+/**
  * Implements hook_mail().
  */
 function bee_webform_mail($key, &$message, $params) {
@@ -378,8 +470,11 @@ function bee_webform_add_reservation_to_cart(Webform $webform, WebformSubmission
           $booking->set('booking_capacity', $data[$bee_element_id]['capacity']);
           $booking->save();
 
+          $unit_price = bee_get_unit_price($node, $booking, $start_date, $end_date);
+
           $order_item->set('field_booking', $booking);
           $order_item->set('field_node', $node);
+          $order_item->setUnitPrice($unit_price, TRUE);
           $order_item->save();
 
           break;

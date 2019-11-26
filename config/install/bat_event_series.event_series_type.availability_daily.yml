@@ -1,0 +1,7 @@
+langcode: en
+status: true
+dependencies: {  }
+name: 'Availability Daily'
+type: availability_daily
+event_granularity: bat_daily
+target_event_type: availability_daily

@@ -11,6 +11,7 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\views\ViewExecutable;
 use Drupal\office_hours\OfficeHoursDateHelper;
+use Drupal\commerce_price\Price;
 use Drupal\commerce_product\Entity\ProductType;
 use Drupal\commerce_product\Entity\ProductVariationType;
 use Drupal\commerce_product\Entity\Product;
@@ -1180,6 +1181,8 @@ function bee_create_bee_booking_type() {
 
     bee_set_booking_event_reference_field_cardinality();
     bee_create_booking_capacity_field();
+    bee_create_booking_repeat_frequency_field();
+    bee_create_booking_repeat_until_field();
   }
 }
 
@@ -1190,6 +1193,81 @@ function bee_set_booking_event_reference_field_cardinality() {
   $field_storage = FieldStorageConfig::loadByName('bat_booking', 'booking_event_reference');
   $field_storage->setCardinality(-1);
   $field_storage->save();
+}
+
+/**
+ * Add booking "Repeat frequency" field.
+ */
+function bee_create_booking_repeat_frequency_field() {
+  $field_name = 'booking_repeat_frequency';
+
+  $field_storage = FieldStorageConfig::loadByName('bat_booking', $field_name);
+  $field = FieldConfig::loadByName('bat_booking', 'bee', $field_name);
+
+  if (empty($field_storage)) {
+    $field_storage = FieldStorageConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => 'bat_booking',
+      'type' => 'list_string',
+      'cardinality' => 1,
+      'locked' => 1,
+      'settings' => [
+        'allowed_values' => [
+          'daily' => 'Daily',
+          'weekly' => 'Weekly',
+          'monthly' => 'Monthly',
+        ],
+        'allowed_values_function' => '',
+      ],
+    ]);
+    $field_storage->save();
+  }
+
+  if (empty($field)) {
+    $field = FieldConfig::create([
+      'field_storage' => $field_storage,
+      'entity_type' => 'bat_booking',
+      'label' => 'Repeat frequency',
+      'bundle' => 'bee',
+      'required' => FALSE,
+    ]);
+    $field->save();
+  }
+}
+
+/**
+ * Add booking "Repeat until" field.
+ */
+function bee_create_booking_repeat_until_field() {
+  $field_name = 'booking_repeat_until';
+
+  $field_storage = FieldStorageConfig::loadByName('bat_booking', $field_name);
+  $field = FieldConfig::loadByName('bat_booking', 'bee', $field_name);
+
+  if (empty($field_storage)) {
+    $field_storage = FieldStorageConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => 'bat_booking',
+      'type' => 'datetime',
+      'cardinality' => 1,
+      'locked' => 1,
+      'settings' => [
+        'datetime_type' => 'date',
+      ],
+    ]);
+    $field_storage->save();
+  }
+
+  if (empty($field)) {
+    $field = FieldConfig::create([
+      'field_storage' => $field_storage,
+      'entity_type' => 'bat_booking',
+      'label' => 'Repeat until',
+      'bundle' => 'bee',
+      'required' => FALSE,
+    ]);
+    $field->save();
+  }
 }
 
 /**
@@ -1259,4 +1337,91 @@ function bee_create_node_product($node) {
   $product->save();
 
   return $product;
+}
+
+function bee_event_series_types_add_fields() {
+  bat_event_series_type_add_event_dates_field('availability_daily');
+  bat_event_series_type_add_target_entity_field('availability_daily', 'bat_unit');
+  bat_event_series_type_add_event_state_reference('availability_daily');
+
+  bat_event_series_type_add_event_dates_field('availability_hourly');
+  bat_event_series_type_add_target_entity_field('availability_hourly', 'bat_unit');
+  bat_event_series_type_add_event_state_reference('availability_hourly');
+}
+
+/**
+ * Implements template_preprocess_bat_event_series().
+ */
+function bee_preprocess_bat_event_series(array &$variables) {
+  // Fetch Event series Entity Object.
+  $event_series = $variables['elements']['#bat_event_series'];
+
+  $bat_unit = $event_series->get('event_bat_unit_reference')->entity;
+
+  $node_storage = \Drupal::entityTypeManager()->getStorage('node');
+
+  $nids = \Drupal::entityQuery('node')
+    ->condition('field_availability_hourly', $bat_unit->id())
+    ->execute();
+
+  $node = $node_storage->load(reset($nids));
+
+  $variables['content']['add_reservation'] = [
+    '#theme' => 'menu_local_action',
+    '#link' => [
+      'title' => t('Add reservation'),
+      'url' => Url::fromRoute('bee.bat_event_series.add_reservation', [
+        'node' => $node->id(),
+        'bat_event_series' => $event_series->id(),
+      ]),
+    ],
+    '#prefix' => '<div class="action-links">',
+    '#suffix' => '</div>',
+    '#weight' => -100,
+  ];
+}
+
+/**
+ * @param $node
+ * @param $booking
+ * @param $start_date
+ * @param $end_date
+ *
+ * @return Price
+ */
+function bee_get_unit_price($node, $booking, $start_date, $end_date) {
+  $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+
+  $interval = $start_date->diff($end_date);
+
+  $reservation_context = [
+    'booking' => $booking,
+    'node' => $node,
+  ];
+
+  $base_price = $node->get('field_price')->number;
+  $currency_code = $node->get('field_price')->currency_code;
+
+  if ($bee_settings['bookable_type'] == 'daily') {
+    $days = $interval->days;
+    $amount = number_format($base_price * $days, 2, '.', '');
+  }
+  else {
+    $field_price_frequency = $node->get('field_price_frequency')->value;
+
+    if ($field_price_frequency == 'hour') {
+      $hours = ($interval->days * 24) + $interval->h;
+      $amount = number_format($base_price * $hours, 2, '.', '');
+    }
+    else {
+      $minutes = ($interval->days * 24 * 60) + ($interval->h * 60) + $interval->i;
+      $amount = number_format($base_price * $minutes, 2, '.', '');
+    }
+  }
+
+  $price = new Price($amount, $currency_code);
+
+  \Drupal::moduleHandler()->alter('bee_reservation_price', $price, $reservation_context);
+
+  return $price;
 }

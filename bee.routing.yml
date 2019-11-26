@@ -16,3 +16,16 @@ bee.node.add_reservation:
         type: entity:node
   requirements:
     _bee_add_reservation_access: 'node'
+
+bee.bat_event_series.add_reservation:
+  path: '/node/{node}/add-reservation/{bat_event_series}'
+  defaults:
+    _form: '\Drupal\bee\Form\AddReservationForm'
+  options:
+    parameters:
+      node:
+        type: entity:node
+      bat_event_series:
+        type: entity:bat_event_series
+  requirements:
+    _bee_add_reservation_access: 'node'
