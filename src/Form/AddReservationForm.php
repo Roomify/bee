@@ -231,6 +231,8 @@ class AddReservationForm extends FormBase {
     }
 
     if ($bee_settings['payment']) {
+      $quantity = 1;
+
       $booking = bat_booking_create([
         'type' => 'bee',
         'label' => $node->label(),
@@ -241,6 +243,8 @@ class AddReservationForm extends FormBase {
       if (isset($values['repeat']) && $values['repeat']) {
         $booking->set('booking_repeat_frequency', $values['repeat_frequency']);
         $booking->set('booking_repeat_until', $values['repeat_until']);
+
+        $quantity = $this->getRepeatingEventsCount($start_date, $values['repeat_frequency'], $values['repeat_until']);
       }
 
       $booking->save();
@@ -264,15 +268,18 @@ class AddReservationForm extends FormBase {
         $cart_manager->emptyCart($cart);
       }
 
+      $unit_price = bee_get_unit_price($node, $booking, $start_date, $end_date);
+
       $order_item = \Drupal::entityTypeManager()->getStorage('commerce_order_item')->create([
         'title' => $node->label(),
         'type' => 'bee',
         'purchased_entity' => $product_variation->id(),
-        'quantity' => 1,
+        'quantity' => $quantity,
         'unit_price' => $product_variation->getPrice(),
       ]);
       $order_item->set('field_booking', $booking);
       $order_item->set('field_node', $node);
+      $order_item->setUnitPrice($unit_price, TRUE);
       $order_item->save();
 
       $cart_manager->addOrderItem($cart, $order_item);
@@ -396,6 +403,23 @@ class AddReservationForm extends FormBase {
         $form_state->setRedirect('entity.node.canonical', ['node' => $node->id()]);
       }
     }
+  }
+
+  /**
+   * @param $start_date
+   * @param $repeat_frequency
+   * @param $repeat_until
+   *
+   * @return int
+   */
+  protected function getRepeatingEventsCount($start_date, $repeat_frequency, $repeat_until) {
+    $rrule = new RRule([
+      'FREQ' => strtoupper($repeat_frequency),
+      'UNTIL' => $repeat_until . 'T235959Z',
+      'DTSTART' => $start_date,
+    ]);
+
+    return $rrule->count();
   }
 
   /**

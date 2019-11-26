@@ -470,8 +470,11 @@ function bee_webform_add_reservation_to_cart(Webform $webform, WebformSubmission
           $booking->set('booking_capacity', $data[$bee_element_id]['capacity']);
           $booking->save();
 
+          $unit_price = bee_get_unit_price($node, $booking, $start_date, $end_date);
+
           $order_item->set('field_booking', $booking);
           $order_item->set('field_node', $node);
+          $order_item->setUnitPrice($unit_price, TRUE);
           $order_item->save();
 
           break;

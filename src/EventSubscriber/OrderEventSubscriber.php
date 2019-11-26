@@ -159,6 +159,7 @@ class OrderEventSubscriber implements EventSubscriberInterface {
    * @param $start_date
    * @param $end_date
    * @param $repeat_until
+   *
    * @return string
    */
   protected function getEventSeriesLabel($node, $bookable_type, $start_date, $end_date, $repeat_frequency, $repeat_until) {
