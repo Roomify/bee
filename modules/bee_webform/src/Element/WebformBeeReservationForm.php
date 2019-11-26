@@ -61,10 +61,13 @@ class WebformBeeReservationForm extends WebformCompositeBase {
           '#type' => ($bookable_type == 'daily') ? 'date' : 'datetime',
           '#title' => t('End date'),
         ];
-        $elements['capacity'] = [
-          '#type' => 'number',
-          '#title' => t('Capacity'),
-        ];
+
+        if ($element['#collect_capacity']) {
+          $elements['capacity'] = [
+            '#type' => 'number',
+            '#title' => t('Capacity'),
+          ];
+        }
 
         $elements['repeat'] = [
           '#type' => 'checkbox',

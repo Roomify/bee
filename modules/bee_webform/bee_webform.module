@@ -41,6 +41,10 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
   if (empty($webform_bee_element['#only_check_availability'])) {
     $value = $form_state->getValue($bee_element_id);
 
+    if (empty($value['capacity'])) {
+      $value['capacity'] = 1;
+    }
+
     if ($value['content_type'] && $value['start_date'] && $value['end_date'] && $value['capacity']) {
       $start_date = $value['start_date'];
       $end_date = $value['end_date'];

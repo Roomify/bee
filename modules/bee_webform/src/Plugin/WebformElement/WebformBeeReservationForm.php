@@ -28,6 +28,7 @@ class WebformBeeReservationForm extends WebformCompositeBase {
     return [
       'content_types' => [],
       'only_check_availability' => FALSE,
+      'collect_capacity' => FALSE,
     ] + parent::getDefaultProperties();
   }
 
@@ -54,6 +55,12 @@ class WebformBeeReservationForm extends WebformCompositeBase {
       '#title' => $this->t('Content type(s)'),
       '#options' => $options,
       '#element_validate' => [[get_class($this), 'validateContentTypes']],
+    ];
+
+    $form['composite']['collect_capacity'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Collect Capacity?'),
+      '#description' => $this->t('If this is checked, BEE will attempt to reserve the number of units entered.'),
     ];
 
     $form['composite']['only_check_availability'] = [
