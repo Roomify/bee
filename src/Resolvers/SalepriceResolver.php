@@ -21,12 +21,9 @@ class SalepriceResolver implements PriceResolverInterface {
       return;
     }
 
-    $cart_provider = \Drupal::service('commerce_cart.cart_provider');
+    $store = $context->getStore();
 
-    $stores = $entity->getProduct()->getStores();
-    $store = reset($stores);
-
-    if ($cart = $cart_provider->getCart('default', $store)) {
+    if ($cart = \Drupal::service('commerce_cart.cart_provider')->getCart('default', $store)) {
       $order_items = $cart->getItems();
       foreach ($order_items as $order_item) {
         if ($order_item->bundle() == 'bee') {

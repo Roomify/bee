@@ -3,24 +3,46 @@
 namespace Drupal\bee\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\node\NodeInterface;
 use Drupal\office_hours\OfficeHoursDateHelper;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class BeeController extends ControllerBase implements ContainerInjectionInterface {
 
   /**
-   * Constructs a new BeeController instance.
+   * The config factory.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
    */
-  public function __construct() {
+  protected $configFactory;
+
+  /**
+   * Constructs a new BeeController object.
+   *
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The config factory.
+   */
+  public function __construct(ConfigFactoryInterface $config_factory) {
+    $this->configFactory = $config_factory;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('config.factory')
+    );
   }
 
   /**
    * Availability calendar page.
    */
   public function availability(NodeInterface $node) {
-    $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+    $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('bee');
 
     $unit_type = $bee_settings['type_id'];
 
@@ -120,7 +142,7 @@ class BeeController extends ControllerBase implements ContainerInjectionInterfac
     ];
 
     return [
-      'form' => \Drupal::formBuilder()->getForm('Drupal\bee\Form\UpdateAvailabilityForm', $node),
+      'form' => $this->formBuilder()->getForm('Drupal\bee\Form\UpdateAvailabilityForm', $node),
       'calendar' => $render_array,
     ];
   }

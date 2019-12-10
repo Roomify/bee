@@ -2,16 +2,80 @@
 
 namespace Drupal\bee\Form;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\bat_event_series\Entity\EventSeries;
+use Drupal\commerce_cart\CartManagerInterface;
+use Drupal\commerce_cart\CartProviderInterface;
 use Drupal\node\NodeInterface;
 use Drupal\node\Entity\Node;
 use Drupal\office_hours\OfficeHoursDateHelper;
 use RRule\RRule;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class AddReservationForm extends FormBase {
+
+  /**
+   * The order item storage.
+   *
+   * @var \Drupal\commerce_order\OrderItemStorageInterface
+   */
+  protected $orderItemStorage;
+
+  /**
+   * The config factory.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $configFactory;
+
+  /**
+   * The cart manager.
+   *
+   * @var \Drupal\commerce_cart\CartManagerInterface
+   */
+  protected $cartManager;
+
+  /**
+   * The cart provider.
+   *
+   * @var \Drupal\commerce_cart\CartProviderInterface
+   */
+  protected $cartProvider;
+
+  /**
+   * Constructs a new AddReservationForm object.
+   *
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The config factory.
+   * @param \Drupal\commerce_cart\CartManagerInterface $cart_manager
+   *   The cart manager.
+   * @param \Drupal\commerce_cart\CartProviderInterface $cart_provider
+   *   The cart provider.
+   */
+  public function __construct(EntityTypeManagerInterface $entity_type_manager, ConfigFactoryInterface $config_factory, CartManagerInterface $cart_manager, CartProviderInterface $cart_provider) {
+    $this->orderItemStorage = $entity_type_manager->getStorage('commerce_order_item');
+    $this->configFactory = $config_factory;
+    $this->cartManager = $cart_manager;
+    $this->cartProvider = $cart_provider;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('entity_type.manager'),
+      $container->get('config.factory'),
+      $container->get('commerce_cart.cart_manager'),
+      $container->get('commerce_cart.cart_provider')
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -24,7 +88,7 @@ class AddReservationForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, NodeInterface $node = NULL, EventSeries $bat_event_series = NULL) {
-    $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+    $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('bee');
 
     $today = new \DateTime();
 
@@ -109,7 +173,7 @@ class AddReservationForm extends FormBase {
   public function validateForm(array &$form, FormStateInterface $form_state) {
     $values = $form_state->getValues();
     $node = Node::load($values['node']);
-    $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+    $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('bee');
 
     $start_date = $values['start_date'];
     $end_date = $values['end_date'];
@@ -219,7 +283,7 @@ class AddReservationForm extends FormBase {
     $start_date = $values['start_date'];
     $end_date = $values['end_date'];
 
-    $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+    $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('bee');
 
     if ($bee_settings['bookable_type'] == 'daily') {
       $start_date = new \DateTime($start_date);
@@ -257,20 +321,17 @@ class AddReservationForm extends FormBase {
       $variations = $product->getVariations();
       $product_variation = reset($variations);
 
-      $cart_manager = \Drupal::service('commerce_cart.cart_manager');
-      $cart_provider = \Drupal::service('commerce_cart.cart_provider');
-
-      $cart = $cart_provider->getCart('default', $store);
+      $cart = $this->cartProvider->getCart('default', $store);
       if (!$cart) {
-        $cart = $cart_provider->createCart('default', $store);
+        $cart = $this->cartProvider->createCart('default', $store);
       }
       else {
-        $cart_manager->emptyCart($cart);
+        $this->cartManager->emptyCart($cart);
       }
 
       $unit_price = bee_get_unit_price($node, $booking, $start_date, $end_date);
 
-      $order_item = \Drupal::entityTypeManager()->getStorage('commerce_order_item')->create([
+      $order_item = $this->orderItemStorage->create([
         'title' => $node->label(),
         'type' => 'bee',
         'purchased_entity' => $product_variation->id(),
@@ -282,7 +343,7 @@ class AddReservationForm extends FormBase {
       $order_item->setUnitPrice($unit_price, TRUE);
       $order_item->save();
 
-      $cart_manager->addOrderItem($cart, $order_item);
+      $this->cartManager->addOrderItem($cart, $order_item);
 
       $form_state->setRedirect('commerce_checkout.form', ['commerce_order' => $cart->id()]);
     }
@@ -375,7 +436,7 @@ class AddReservationForm extends FormBase {
       }
 
       if (isset($values['repeat']) && $values['repeat']) {
-        $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+        $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('bee');
 
         foreach ($node->get('field_availability_' . $bee_settings['bookable_type']) as $unit) {
           if ($unit->entity) {
@@ -434,7 +495,7 @@ class AddReservationForm extends FormBase {
     $start_date = $values['start_date'];
     $end_date = $values['end_date'];
 
-    $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+    $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('bee');
 
     $units_ids = [];
     foreach ($node->get('field_availability_' . $bee_settings['bookable_type']) as $unit) {

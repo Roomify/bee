@@ -2,16 +2,39 @@
 
 namespace Drupal\bee\EventSubscriber;
 
-use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\Query\QueryFactory;
 use Drupal\state_machine\Event\WorkflowTransitionEvent;
 use RRule\RRule;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class OrderEventSubscriber implements EventSubscriberInterface {
 
   /**
-   * Constructs a new OrderEventSubscriber object.
+   * The entity query factory.
+   *
+   * @var \Drupal\Core\Entity\Query\QueryFactory
    */
-  public function __construct() {
+  protected $queryFactory;
+
+  /**
+   * The config factory.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $configFactory;
+
+  /**
+   * Constructs a new OrderEventSubscriber object.
+   *
+   * @param \Drupal\Core\Entity\Query\QueryFactory $query_factory
+   *   The entity query factory.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The config factory.
+   */
+  public function __construct(QueryFactory $query_factory, ConfigFactoryInterface $config_factory) {
+    $this->queryFactory = $query_factory;
+    $this->configFactory = $config_factory;
   }
 
   /**
@@ -39,7 +62,7 @@ class OrderEventSubscriber implements EventSubscriberInterface {
           $start_date = new \DateTime($booking->get('booking_start_date')->value);
           $end_date = new \DateTime($booking->get('booking_end_date')->value);
 
-          $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+          $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('bee');
 
           if ($bee_settings['bookable_type'] == 'daily') {
             $booked_state = bat_event_load_state_by_machine_name('bee_daily_booked');
@@ -83,7 +106,7 @@ class OrderEventSubscriber implements EventSubscriberInterface {
 
             $event_series->save();
 
-            $query = \Drupal::entityQuery('bat_event')
+            $query = $this->queryFactory->get('bat_event')
               ->condition('event_series.target_id', $event_series->id());
             $events_created = $query->execute();
 
@@ -130,7 +153,7 @@ class OrderEventSubscriber implements EventSubscriberInterface {
    * return array
    */
   protected function getAvailableUnits($node, $start_date, $end_date) {
-    $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+    $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('bee');
 
     $units_ids = [];
     foreach ($node->get('field_availability_' . $bee_settings['bookable_type']) as $unit) {

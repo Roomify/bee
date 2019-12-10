@@ -2,13 +2,41 @@
 
 namespace Drupal\bee\Form;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\NodeInterface;
 use Drupal\node\Entity\Node;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class UpdateAvailabilityForm extends FormBase {
+
+  /**
+   * The config factory.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $configFactory;
+
+  /**
+   * Constructs a new UpdateAvailabilityForm object.
+   *
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The config factory.
+   */
+  public function __construct(ConfigFactoryInterface $config_factory) {
+    $this->configFactory = $config_factory;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('config.factory')
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -21,7 +49,7 @@ class UpdateAvailabilityForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, NodeInterface $node = NULL) {
-    $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+    $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('bee');
     $today = new \DateTime();
 
     $tomorrow = clone($today);
@@ -120,7 +148,7 @@ class UpdateAvailabilityForm extends FormBase {
     $start_date = $values['start_date'];
     $end_date = $values['end_date'];
 
-    $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+    $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('bee');
 
     if ($bee_settings['bookable_type'] == 'daily') {
       $start_date = new \DateTime($start_date);
@@ -153,7 +181,7 @@ class UpdateAvailabilityForm extends FormBase {
     $start_date = $values['start_date'];
     $end_date = $values['end_date'];
 
-    $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+    $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('bee');
 
     if ($bee_settings['bookable_type'] == 'daily') {
       $start_date = new \DateTime($start_date);
@@ -162,10 +190,8 @@ class UpdateAvailabilityForm extends FormBase {
       if ($values['repeat']) {
         $repeat_interval = $start_date->diff($end_date);
 
-        if ($values['repeat_frequency'] == 'daily') {
-          $interval = new \DateInterval('P1D');
-        }
-        elseif ($values['repeat_frequency'] == 'weekly') {
+        $interval = new \DateInterval('P1D');
+        if ($values['repeat_frequency'] == 'weekly') {
           $interval = new \DateInterval('P1W');
         }
         elseif ($values['repeat_frequency'] == 'monthly') {
@@ -194,10 +220,8 @@ class UpdateAvailabilityForm extends FormBase {
       if ($values['repeat']) {
         $repeat_interval = $start_date->diff($end_date);
 
-        if ($values['repeat_frequency'] == 'daily') {
-          $interval = new \DateInterval('P1D');
-        }
-        elseif ($values['repeat_frequency'] == 'weekly') {
+        $interval = new \DateInterval('P1D');
+        if ($values['repeat_frequency'] == 'weekly') {
           $interval = new \DateInterval('P1W');
         }
         elseif ($values['repeat_frequency'] == 'monthly') {

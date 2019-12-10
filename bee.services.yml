@@ -1,20 +1,20 @@
 services:
   access_check.bee.availability:
     class: Drupal\bee\Access\BeeAvailabilityAccessCheck
-    arguments: ['@entity.manager']
+    arguments: ['@entity.manager', '@config.factory']
     tags:
       - { name: access_check, applies_to: _bee_availability_access }
   access_check.bee.add-reservation:
     class: Drupal\bee\Access\BeeAddReservationAccessCheck
-    arguments: ['@entity.manager']
+    arguments: ['@entity.manager', '@config.factory']
     tags:
       - { name: access_check, applies_to: _bee_add_reservation_access }
   bee.saleprice_resolver:
     class: Drupal\bee\Resolvers\SalepriceResolver
-    arguments: ['@request_stack']
     tags:
       - { name: commerce_price.price_resolver, priority: 600 }
   bee.order_subscriber:
     class: Drupal\bee\EventSubscriber\OrderEventSubscriber
+    arguments: ['@entity.query', '@config.factory']
     tags:
       - { name: event_subscriber }
