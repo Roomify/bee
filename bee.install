@@ -185,3 +185,10 @@ function bee_update_8005() {
     bee_create_booking_repeat_until_field();
   }
 }
+
+/**
+ * Add booking "Event series" field.
+ */
+function bee_update_8006() {
+  bee_create_booking_event_series_reference_field();
+}

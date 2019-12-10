@@ -311,6 +311,10 @@ class AddReservationForm extends FormBase {
         $quantity = $this->getRepeatingEventsCount($start_date, $values['repeat_frequency'], $values['repeat_until']);
       }
 
+      if (isset($values['event_series'])) {
+        $booking->set('booking_event_series_reference', $values['event_series']);
+      }
+
       $booking->save();
 
       $product = $node->get('field_product')->entity;

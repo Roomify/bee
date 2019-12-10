@@ -1183,6 +1183,7 @@ function bee_create_bee_booking_type() {
     bee_create_booking_capacity_field();
     bee_create_booking_repeat_frequency_field();
     bee_create_booking_repeat_until_field();
+    bee_create_booking_event_series_reference_field();
   }
 }
 
@@ -1307,6 +1308,41 @@ function bee_create_booking_capacity_field() {
         'prefix' => '',
         'suffix' => '',
       ],
+    ]);
+    $field->save();
+  }
+}
+
+/**
+ * Add booking "Event series" reference field.
+ */
+function bee_create_booking_event_series_reference_field() {
+  $field_name = 'booking_event_series_reference';
+
+  $field_storage = FieldStorageConfig::loadByName('bat_booking', $field_name);
+  $field = FieldConfig::loadByName('bat_booking', 'bee', $field_name);
+
+  if (empty($field_storage)) {
+    $field_storage = FieldStorageConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => 'bat_booking',
+      'type' => 'entity_reference',
+      'cardinality' => 1,
+      'locked' => 1,
+      'settings' => [
+        'target_type' => 'bat_event_series',
+      ],
+    ]);
+    $field_storage->save();
+  }
+
+  if (empty($field)) {
+    $field = FieldConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => 'bat_booking',
+      'label' => 'Event series',
+      'bundle' => 'bee',
+      'required' => FALSE,
     ]);
     $field->save();
   }

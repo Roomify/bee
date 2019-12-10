@@ -106,6 +106,8 @@ class OrderEventSubscriber implements EventSubscriberInterface {
 
             $event_series->save();
 
+            $booking->set('booking_event_series_reference', $event_series->id());
+
             $query = $this->queryFactory->get('bat_event')
               ->condition('event_series.target_id', $event_series->id());
             $events_created = $query->execute();
@@ -126,6 +128,10 @@ class OrderEventSubscriber implements EventSubscriberInterface {
               ];
               $event->set('event_dates', $event_dates);
               $event->set('event_state_reference', $booked_state->id());
+
+              if ($event_series = $booking->get('booking_event_series_reference')->target_id) {
+                $event->set('event_series', $event_series);
+              }
 
               $available_units = $this->getAvailableUnits($node, $start_date, $end_date);
 
