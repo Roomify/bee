@@ -10,6 +10,7 @@ bee.node.add_reservation:
   path: '/node/{node}/add-reservation'
   defaults:
     _form: '\Drupal\bee\Form\AddReservationForm'
+    _title_callback: '\Drupal\bee\Controller\BeeController::addReservationTitle'
   options:
     parameters:
       node:
@@ -21,6 +22,7 @@ bee.bat_event_series.add_reservation:
   path: '/node/{node}/add-reservation/{bat_event_series}'
   defaults:
     _form: '\Drupal\bee\Form\AddReservationForm'
+    _title_callback: '\Drupal\bee\Controller\BeeController::addReservationTitle'
   options:
     parameters:
       node:

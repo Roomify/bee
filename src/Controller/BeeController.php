@@ -158,4 +158,16 @@ class BeeController extends ControllerBase implements ContainerInjectionInterfac
   public function availabilityTitle(EntityInterface $node) {
     return $this->t('Availability for %label', ['%label' => $node->label()]);
   }
+
+  /**
+   * The _title_callback for the page that renders the add reservation form.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $node
+   *
+   * @return string
+   *   The page title.
+   */
+  public function addReservationTitle(EntityInterface $node) {
+    return $this->t('Create a reservation for %label', ['%label' => $node->label()]);
+  }
 }
