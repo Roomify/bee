@@ -1392,13 +1392,22 @@ function bee_preprocess_bat_event_series(array &$variables) {
   // Fetch Event series Entity Object.
   $event_series = $variables['elements']['#bat_event_series'];
 
+  if (!in_array($event_series->bundle(), ['availability_daily', 'availability_hourly'])) {
+    return;
+  }
+
   $bat_unit = $event_series->get('event_bat_unit_reference')->entity;
 
   $node_storage = \Drupal::entityTypeManager()->getStorage('node');
 
-  $nids = \Drupal::entityQuery('node')
-    ->condition('field_availability_hourly', $bat_unit->id())
-    ->execute();
+  $query = \Drupal::entityQuery('node');
+  if ($event_series->bundle() == 'availability_daily') {
+    $query->condition('field_availability_daily', $bat_unit->id());
+  }
+  else {
+    $query->condition('field_availability_hourly', $bat_unit->id());
+  }
+  $nids = $query->execute();
 
   $node = $node_storage->load(reset($nids));
 
