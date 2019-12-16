@@ -105,14 +105,14 @@ class AddReservationForm extends FormBase {
 
     $form['start_date'] = [
       '#type' => ($bee_settings['bookable_type'] == 'daily') ? 'date' : 'datetime',
-      '#title' => t('Start date'),
+      '#title' => $this->t('Start date'),
       '#default_value' => ($bee_settings['bookable_type'] == 'daily') ? $today->format('Y-m-d') : new DrupalDateTime($today->format('Y-m-d H:00')),
       '#date_increment' => 60,
     ];
 
     $form['end_date'] = [
       '#type' => ($bee_settings['bookable_type'] == 'daily') ? 'date' : 'datetime',
-      '#title' => t('End date'),
+      '#title' => $this->t('End date'),
       '#default_value' => ($bee_settings['bookable_type'] == 'daily') ? $tomorrow->format('Y-m-d') : new DrupalDateTime($one_hour_later->format('Y-m-d H:00')),
       '#date_increment' => 60,
     ];
@@ -126,17 +126,17 @@ class AddReservationForm extends FormBase {
     else {
       $form['repeat'] = [
         '#type' => 'checkbox',
-        '#title' => t('This booking repeats'),
+        '#title' => $this->t('This booking repeats'),
         '#prefix' => '<div class="form-row">',
       ];
 
       $form['repeat_frequency'] = [
         '#type' => 'select',
-        '#title' => t('Repeat frequency'),
+        '#title' => $this->t('Repeat frequency'),
         '#options' => [
-          'daily' => t('Daily'),
-          'weekly' => t('Weekly'),
-          'monthly' => t('Monthly'),
+          'daily' => $this->t('Daily'),
+          'weekly' => $this->t('Weekly'),
+          'monthly' => $this->t('Monthly'),
         ],
         '#states' => [
           'visible' => [
@@ -147,7 +147,7 @@ class AddReservationForm extends FormBase {
 
       $form['repeat_until'] = [
         '#type' => 'date',
-        '#title' => t('Repeat until'),
+        '#title' => $this->t('Repeat until'),
         '#states' => [
           'visible' => [
             ':input[name="repeat"]' => ['checked' => TRUE],
@@ -159,7 +159,7 @@ class AddReservationForm extends FormBase {
 
     $form['submit'] = [
       '#type' => 'submit',
-      '#value' => t('Add Reservation'),
+      '#value' => $this->t('Add Reservation'),
     ];
 
     $form['#attached']['library'][] = 'bee/bee_form';
@@ -252,23 +252,30 @@ class AddReservationForm extends FormBase {
           if ((!$start_date_open_hour || !$end_date_open_hour) ||
               !(($start_date >= $start_date_open_hour['start'] && $start_date <= $start_date_open_hour['end']) &&
                 ($end_date >= $end_date_open_hour['start'] && $end_date <= $end_date_open_hour['end']))) {
-            $form_state->setError($form, t('Please select start and end times within the opening hours.'));
+            $form_state->setError($form, $this->t('Please select start and end times within the opening hours.'));
           }
         }
       }
 
-      if (!(isset($values['repeat']) && $values['repeat'])) {
-        $available_units = $this->getAvailableUnits($values);
+      if (isset($values['repeat']) && $values['repeat']) {
+        if ($bee_settings['payment']) {
+          if (!$this->checkSeriesAvailability($values['node'], $values['start_date'], $values['end_date'], $values['repeat_frequency'], $values['repeat_until'])) {
+            $form_state->setError($form, $this->t('Some events on this series are not available.'));
+          }
+        }
+      }
+      else {
+        $available_units = $this->getAvailableUnits($values['node'], $values['start_date'], $values['end_date']);
 
         if (empty($available_units)) {
-          $form_state->setError($form, t('No available units.'));
+          $form_state->setError($form, $this->t('No available units.'));
         }
       }
     }
 
     if (isset($values['repeat']) && $values['repeat']) {
       if (empty($values['repeat_until'])) {
-        $form_state->setErrorByName('repeat_until', t('Repeat until is required if "This booking repeats" is checked.'));
+        $form_state->setErrorByName('repeat_until', $this->t('Repeat until is required if "This booking repeats" is checked.'));
       }
     }
   }
@@ -358,14 +365,14 @@ class AddReservationForm extends FormBase {
         if (isset($values['repeat']) && $values['repeat']) {
           $repeat_until = new \DateTime($values['repeat_until'] . 'T235959Z');
 
-          $frequency = t('Day');
+          $frequency = $this->t('Day');
           if ($values['repeat_frequency'] == 'weekly') {
             $frequency = $start_date->format('l');
           } elseif ($values['repeat_frequency'] == 'monthly') {
-            $frequency = t('@day of Month', ['@day' => $start_date->format('jS')]);
+            $frequency = $this->t('@day of Month', ['@day' => $start_date->format('jS')]);
           }
 
-          $label = t('Reservations for @node Every @frequency from @start_date -> @end_date', [
+          $label = $this->t('Reservations for @node Every @frequency from @start_date -> @end_date', [
             '@node' => $node->label(),
             '@frequency' => $frequency,
             '@start_date' => $start_date->format('M j Y'),
@@ -400,14 +407,14 @@ class AddReservationForm extends FormBase {
         if (isset($values['repeat']) && $values['repeat']) {
           $repeat_until = new \DateTime($values['repeat_until'] . 'T235959Z');
 
-          $frequency = t('Day');
+          $frequency = $this->t('Day');
           if ($values['repeat_frequency'] == 'weekly') {
             $frequency = $start_date->format('l');
           } elseif ($values['repeat_frequency'] == 'monthly') {
-            $frequency = t('@day of Month', ['@day' => $start_date->format('jS')]);
+            $frequency = $this->t('@day of Month', ['@day' => $start_date->format('jS')]);
           }
 
-          $label = t('Reservations for @node Every @frequency from @start_time-@end_time from @start_date -> @end_date', [
+          $label = $this->t('Reservations for @node Every @frequency from @start_time-@end_time from @start_date -> @end_date', [
             '@node' => $node->label(),
             '@frequency' => $frequency,
             '@start_time' => $start_date->format('gA'),
@@ -449,7 +456,7 @@ class AddReservationForm extends FormBase {
         }
       }
       else {
-        $available_units = $this->getAvailableUnits($values);
+        $available_units = $this->getAvailableUnits($values['node'], $values['start_date'], $values['end_date']);
 
         $event->set('event_bat_unit_reference', reset($available_units));
       }
@@ -471,6 +478,8 @@ class AddReservationForm extends FormBase {
   }
 
   /**
+   * Get number of events in the repeating sequence.
+   *
    * @param $start_date
    * @param $repeat_frequency
    * @param $repeat_until
@@ -488,16 +497,62 @@ class AddReservationForm extends FormBase {
   }
 
   /**
+   * @param $nid
+   * @param $start
+   * @param $repeat_frequency
+   * @param $repeat_until
+   *
+   * @return bool
+   */
+  protected function checkSeriesAvailability($nid, $start, $end, $repeat_frequency, $repeat_until) {
+    $node = Node::load($nid);
+    $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('bee');
+
+    $start = new \DateTime($start);
+    $end = new \DateTime($end);
+
+    $rrule = new RRule([
+      'FREQ' => strtoupper($repeat_frequency),
+      'UNTIL' => $repeat_until . 'T235959Z',
+      'DTSTART' => $start,
+    ]);
+
+    foreach ($rrule as $occurrence) {
+      $start_date = clone($occurrence);
+      $end_date = clone($occurrence);
+
+      if ($bee_settings['bookable_type'] == 'daily') {
+        $end_date->add($start->diff($end));
+
+        $start_date->setTime(0, 0);
+        $end_date->setTime(0, 0);
+      }
+      else {
+        $start_date->setTime($start->format('H'), $start->format('i'));
+        $end_date->setTime($start->format('H'), $start->format('i'));
+
+        $end_date->add($start->diff($end));
+      }
+
+      if (empty($this->getAvailableUnits($nid, $start_date, $end_date))) {
+        return FALSE;
+      }
+    }
+
+    return TRUE;
+  }
+
+  /**
    * Get available Units.
    *
-   * @param $values
+   * @param $nid
+   * @param $start_date
+   * @param $end_date
    *
    * return array
    */
-  protected function getAvailableUnits($values) {
-    $node = Node::load($values['node']);
-    $start_date = $values['start_date'];
-    $end_date = $values['end_date'];
+  protected function getAvailableUnits($nid, $start_date, $end_date) {
+    $node = Node::load($nid);
 
     $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('bee');
 
