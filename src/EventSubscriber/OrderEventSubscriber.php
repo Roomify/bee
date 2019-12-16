@@ -8,6 +8,9 @@ use Drupal\state_machine\Event\WorkflowTransitionEvent;
 use RRule\RRule;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
+/**
+ *
+ */
 class OrderEventSubscriber implements EventSubscriberInterface {
 
   /**
@@ -115,7 +118,7 @@ class OrderEventSubscriber implements EventSubscriberInterface {
             foreach ($events_created as $event_id) {
               $event = bat_event_load($event_id);
               $events[] = $event;
-            }            
+            }
           }
           else {
             $capacity = ($booking->get('booking_capacity')->value) ? ($booking->get('booking_capacity')->value) : 1;
@@ -195,7 +198,8 @@ class OrderEventSubscriber implements EventSubscriberInterface {
     $frequency = t('Day');
     if ($repeat_frequency == 'weekly') {
       $frequency = $start_date->format('l');
-    } elseif ($repeat_frequency == 'monthly') {
+    }
+    elseif ($repeat_frequency == 'monthly') {
       $frequency = t('@day of Month', ['@day' => $start_date->format('jS')]);
     }
 

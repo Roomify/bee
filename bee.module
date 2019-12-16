@@ -1288,7 +1288,7 @@ function bee_create_booking_capacity_field() {
       'cardinality' => 1,
       'locked' => 1,
       'settings' => [
-        'unsigned' => true,
+        'unsigned' => TRUE,
         'size' => 'normal',
       ],
     ]);
@@ -1303,8 +1303,8 @@ function bee_create_booking_capacity_field() {
       'bundle' => 'bee',
       'required' => FALSE,
       'settings' => [
-        'min' => null,
-        'max' => null,
+        'min' => NULL,
+        'max' => NULL,
         'prefix' => '',
         'suffix' => '',
       ],
@@ -1432,7 +1432,7 @@ function bee_preprocess_bat_event_series(array &$variables) {
  * @param $start_date
  * @param $end_date
  *
- * @return Price
+ * @return \Drupal\commerce_price\Price
  */
 function bee_get_unit_price($node, $booking, $start_date, $end_date) {
   $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');

@@ -16,6 +16,9 @@ use Drupal\office_hours\OfficeHoursDateHelper;
 use RRule\RRule;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
+/**
+ *
+ */
 class AddReservationForm extends FormBase {
 
   /**
@@ -368,7 +371,8 @@ class AddReservationForm extends FormBase {
           $frequency = $this->t('Day');
           if ($values['repeat_frequency'] == 'weekly') {
             $frequency = $start_date->format('l');
-          } elseif ($values['repeat_frequency'] == 'monthly') {
+          }
+          elseif ($values['repeat_frequency'] == 'monthly') {
             $frequency = $this->t('@day of Month', ['@day' => $start_date->format('jS')]);
           }
 
@@ -410,7 +414,8 @@ class AddReservationForm extends FormBase {
           $frequency = $this->t('Day');
           if ($values['repeat_frequency'] == 'weekly') {
             $frequency = $start_date->format('l');
-          } elseif ($values['repeat_frequency'] == 'monthly') {
+          }
+          elseif ($values['repeat_frequency'] == 'monthly') {
             $frequency = $this->t('@day of Month', ['@day' => $start_date->format('jS')]);
           }
 
@@ -471,7 +476,8 @@ class AddReservationForm extends FormBase {
 
       if (isset($values['event_series'])) {
         $form_state->setRedirect('entity.bat_event_series.canonical', ['bat_event_series' => $values['event_series']]);
-      } else {
+      }
+      else {
         $form_state->setRedirect('entity.node.canonical', ['node' => $node->id()]);
       }
     }

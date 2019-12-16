@@ -9,6 +9,9 @@ use Drupal\Core\Routing\Access\AccessInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\node\Entity\Node;
 
+/**
+ *
+ */
 class BeeAvailabilityAccessCheck implements AccessInterface {
 
   /**

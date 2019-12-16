@@ -10,6 +10,9 @@ use Drupal\node\NodeInterface;
 use Drupal\office_hours\OfficeHoursDateHelper;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
+/**
+ *
+ */
 class BeeController extends ControllerBase implements ContainerInjectionInterface {
 
   /**
@@ -110,7 +113,7 @@ class BeeController extends ControllerBase implements ContainerInjectionInterfac
       $event_type = 'availability_hourly';
       $event_granularity = 'bat_hourly';
 
-       $fc_user_settings = [
+      $fc_user_settings = [
         'batCalendar' => [
           [
             'unitType' => $unit_type,
@@ -128,7 +131,6 @@ class BeeController extends ControllerBase implements ContainerInjectionInterfac
         ],
       ];
     }
-
 
     $calendar_settings['user_settings'] = $fc_user_settings;
     $calendar_settings['calendar_id'] = 'fullcalendar-scheduler';
@@ -170,4 +172,5 @@ class BeeController extends ControllerBase implements ContainerInjectionInterfac
   public function addReservationTitle(EntityInterface $node) {
     return $this->t('Create a reservation for %label', ['%label' => $node->label()]);
   }
+
 }

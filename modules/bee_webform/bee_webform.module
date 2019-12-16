@@ -74,7 +74,9 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
         }
       }
 
-      uasort($available_units, function($a, $b) { return count($a) - count($b); });
+      uasort($available_units, function ($a, $b) {
+        return count($a) - count($b);
+      });
 
       $index = 0;
       $events_created = [];
@@ -107,7 +109,8 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
             $frequency = t('Day');
             if ($value['repeat_frequency'] == 'weekly') {
               $frequency = $start_date->format('l');
-            } elseif ($value['repeat_frequency'] == 'monthly') {
+            }
+            elseif ($value['repeat_frequency'] == 'monthly') {
               $frequency = t('@day of Month', ['@day' => $start_date->format('jS')]);
             }
 
@@ -198,7 +201,7 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
       $send = TRUE;
 
       $result = $mailManager->mail($module, $key, $to, $langcode, $params, NULL, $send);
-      if ($result['result'] !== true) {
+      if ($result['result'] !== TRUE) {
         $message = t('There was a problem sending your email notification to @email for creating a webform BEE reservation.', ['@email' => $to]);
         \Drupal::messenger()->addError($message);
         \Drupal::logger('bee_webform')->error($message);
@@ -271,7 +274,7 @@ function bee_webform_get_available_units($values) {
  * Get available Units for a given node.
  *
  * @param $node
- * @param WebformSubmission $webform_submission
+ * @param \Drupal\webform\Entity\WebformSubmission $webform_submission
  * @param $bee_element_id
  *
  * return array
@@ -401,7 +404,7 @@ function bee_webform_mail($key, &$message, $params) {
 }
 
 /**
- * @param Webform $webform
+ * @param \Drupal\webform\Entity\Webform $webform
  *
  * @return array|false
  */
@@ -418,7 +421,7 @@ function _bee_webform_get_webform_bee_reservation_element(Webform $webform) {
 }
 
 /**
- * @param WebformSubmission $webform_submission
+ * @param \Drupal\webform\Entity\WebformSubmission $webform_submission
  * @param $bee_element_id
  *
  * @return array
@@ -442,8 +445,8 @@ function _bee_webform_get_nodeids_by_type(WebformSubmission $webform_submission,
 }
 
 /**
- * @param Webform $webform
- * @param WebformSubmission $webform_submission
+ * @param \Drupal\webform\Entity\Webform $webform
+ * @param \Drupal\webform\Entity\WebformSubmission $webform_submission
  * @param $bee_element_id
  */
 function bee_webform_add_reservation_to_cart(Webform $webform, WebformSubmission $webform_submission, $bee_element_id) {

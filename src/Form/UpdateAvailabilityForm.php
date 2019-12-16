@@ -10,6 +10,9 @@ use Drupal\node\NodeInterface;
 use Drupal\node\Entity\Node;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
+/**
+ *
+ */
 class UpdateAvailabilityForm extends FormBase {
 
   /**
