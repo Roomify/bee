@@ -530,8 +530,8 @@ class AddReservationForm extends FormBase {
       if ($bee_settings['bookable_type'] == 'daily') {
         $end_date->add($start->diff($end));
 
-        $start_date->setTime(0, 0);
-        $end_date->setTime(0, 0);
+        $start_date = $start_date->format('Y-m-d');
+        $end_date = $end_date->format('Y-m-d');
       }
       else {
         $start_date->setTime($start->format('H'), $start->format('i'));
