@@ -71,3 +71,11 @@ before_script:
   # Following step with -y should also run composer install.
   - drush -y en bat bat_api bat_calendar_reference bat_event bat_event_ui bat_facets bat_fullcalendar bat_unit bee
   - drush cr all --yes
+
+# Cache composer/drush files
+cache:
+  directories:
+    - $HOME/.cache
+    - $HOME/.composer/cache
+    - vendor
+    - $HOME/.drush/cache
