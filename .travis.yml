@@ -1,0 +1,73 @@
+language: php
+
+sudo: required
+dist: trusty
+
+php:
+  - 7.0
+  - 7.1
+  - 7.2
+  - 7.3
+
+addons:
+  chrome: stable
+
+mysql:
+  database: drupal
+  username: root
+  encoding: utf8
+
+before_install:
+  - export CHROME_BIN=chromium-browser
+  - export DISPLAY=:99.0
+  - sh -e /etc/init.d/xvfb start
+  - wget http://chromedriver.storage.googleapis.com/78.0.3904.105/chromedriver_linux64.zip && unzip chromedriver_linux64.zip && sudo mv chromedriver /usr/bin
+
+install:
+  # Set unlimited memory_limit.
+  - if [ "${TRAVIS_PHP_VERSION}" != 'hhvm' ]; then INI_FILE=~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini; else INI_FILE=/etc/hhvm/php.ini; fi;
+  - echo "memory_limit = -1" >> "${INI_FILE}"
+
+  # Remove xdebug for the moment. We aren't generating code coverage, and it slows us down.
+  - if [ "${TRAVIS_PHP_VERSION}" != '7.0' ]; then mv ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/xdebug.ini /tmp/xdebug.ini; fi;
+
+before_script:
+  # Create drupal database.
+  - mysql -u root -e "CREATE DATABASE drupal;"
+  # Set up DB user.
+  - mysql -uroot -e "CREATE USER drupal@localhost IDENTIFIED BY 'drupal';"
+  - mysql -uroot -e "GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER, CREATE TEMPORARY TABLES ON drupal.* TO 'drupal'@'localhost' IDENTIFIED BY 'drupal';"
+
+  # Set github access token for composer if available.
+  - if [[ $GITHUB_OAUTH_TOKEN ]]; then git config --global github.accesstoken $GITHUB_OAUTH_TOKEN; fi
+  # Copy module to tmp dir for later use.
+  - mkdir /tmp/bee; cp -r * /tmp/bee
+  # Update composer.
+  - composer -n self-update
+
+  # Install drush.
+  - export PATH="$HOME/.composer/vendor/bin:$PATH"
+  - composer -n global require drush/drush:8.*
+  # Install code sniffer.
+  - composer -n global require drupal/coder
+  # Register Drupal coding standards.
+  - phpcs --config-set installed_paths ~/.composer/vendor/drupal/coder/coder_sniffer
+  # Don't display warnings.
+  - phpcs --config-set show_warnings 0
+
+  # Make the site.
+  - cd $TRAVIS_BUILD_DIR
+  - drush make test/project.make bee
+
+  # Copy the bee module into the Drupal site.
+  - mkdir -p bee/sites/all/modules/bee
+  - mv /tmp/bee bee/sites/all/modules/bee
+
+  # Install BAT library.
+  - cd $TRAVIS_BUILD_DIR/bee
+  - composer require "roomify/bat"
+
+  - php -d sendmail_path=$(which true) ~/.composer/vendor/bin/drush.php --yes site-install --db-url=mysql://drupal:drupal@127.0.0.1/drupal --account-name=admin --account-pass=test --site-mail=webmaster@roomify.us --site-name="bee"
+  # Following step with -y should also run composer install.
+  - drush -y en bat bat_api bat_calendar_reference bat_event bat_event_ui bat_facets bat_fullcalendar bat_unit bee
+  - drush cr all --yes
