@@ -15,7 +15,7 @@ projects[fullcalendar_library][download][branch] = 8.x-1.x
 ; Pull the latest version of bat
 projects[bat][type] = module
 projects[bat][download][type] = git
-projects[bat][download][url] = https://github.com/Roomify/bat.git
+projects[bat][download][url] = https://github.com/Roomify/bat_drupal.git
 projects[bat][download][branch] = 8.x-1.x
 projects[bat][subdir] = bee
 
