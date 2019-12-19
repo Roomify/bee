@@ -81,7 +81,7 @@ script:
   - cd $TRAVIS_BUILD_DIR/bee/sites/all/modules/bee/bee
   - if [ "${TRAVIS_PHP_VERSION}" == '7.3' ]; then drupal-check -ad bee.module; fi;
   - if [ "${TRAVIS_PHP_VERSION}" == '7.3' ]; then drupal-check -ad bee.install; fi;
-  - if [ "${TRAVIS_PHP_VERSION}" == '7.3' ]; then drupal-check -ad scr; fi;
+  - if [ "${TRAVIS_PHP_VERSION}" == '7.3' ]; then drupal-check -ad src; fi;
   - if [ "${TRAVIS_PHP_VERSION}" == '7.3' ]; then drupal-check -ad modules; fi;
 
   # Check coding standards.
