@@ -73,7 +73,15 @@ before_script:
   - drush cr all --yes
 
 script:
-  - cd $TRAVIS_BUILD_DIR/bee/sites/all/modules/bee
+  - if [ "${TRAVIS_PHP_VERSION}" == '7.3' ]; then composer global require mglaman/drupal-check; fi;
+
+  # Run drupal-check
+  - cd $TRAVIS_BUILD_DIR/bee/sites/all/modules/bee/bee
+  - if [ "${TRAVIS_PHP_VERSION}" == '7.3' ]; then drupal-check -ad bee.module; fi;
+  - if [ "${TRAVIS_PHP_VERSION}" == '7.3' ]; then drupal-check -ad bee.install; fi;
+  - if [ "${TRAVIS_PHP_VERSION}" == '7.3' ]; then drupal-check -ad scr; fi;
+  - if [ "${TRAVIS_PHP_VERSION}" == '7.3' ]; then drupal-check -ad modules; fi;
+
   # Check coding standards.
   - phpcs --standard=Drupal --exclude=Drupal.Arrays.Array,Drupal.Commenting.FunctionComment,Drupal.Commenting.DocComment,Drupal.Commenting.FileComment,Drupal.NamingConventions.ValidFunctionName,Drupal.NamingConventions.ValidVariableName,Drupal.InfoFiles.AutoAddedKeys,Drupal.InfoFiles.ClassFiles --report-width=74 --extensions=php,module,inc,install,test,profile,theme,info,txt,md,yml --ignore=test $TRAVIS_BUILD_DIR/bee/sites/all/modules/bee
 
