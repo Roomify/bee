@@ -28,6 +28,7 @@ projects[bat_api][subdir] = bee
 
 ; +++++ Contrib Modules +++++
 
+projects[business_rules][version] = 1.0-beta8
 projects[commerce][version] = 2.16
 projects[office_hours][version] = 1.2
 projects[services][version] = 4.0-beta5

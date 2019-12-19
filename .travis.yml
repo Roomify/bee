@@ -66,6 +66,8 @@ before_script:
   # Install BAT library.
   - cd $TRAVIS_BUILD_DIR/bee
   - composer require "roomify/bat"
+  # Install RRULE library.
+  - composer require "rlanvin/php-rrule"
 
   - php -d sendmail_path=$(which true) ~/.composer/vendor/bin/drush.php --yes site-install --db-url=mysql://drupal:drupal@127.0.0.1/drupal --account-name=admin --account-pass=test --site-mail=webmaster@roomify.us --site-name="bee"
   # Following step with -y should also run composer install.
