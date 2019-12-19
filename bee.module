@@ -1022,8 +1022,6 @@ function bee_create_node_product_type($node_type) {
       'variationType' => 'bee',
     ]);
     $product_type->save();
-    commerce_product_add_stores_field($product_type);
-    commerce_product_add_variations_field($product_type);
   }
 }
 
