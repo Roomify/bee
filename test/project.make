@@ -28,7 +28,11 @@ projects[bat_api][subdir] = bee
 
 ; +++++ Contrib Modules +++++
 
+projects[commerce][version] = 2.16
+projects[office_hours][version] = 1.2
 projects[services][version] = 4.0-beta5
+projects[token][version] = 1.5
+projects[webform][version] = 5.6
 
 ; +++++ Libraries +++++
 
