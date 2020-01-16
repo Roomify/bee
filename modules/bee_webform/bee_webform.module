@@ -45,135 +45,97 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
       $value['capacity'] = 1;
     }
 
-    if ($value['content_type'] && $value['start_date'] && $value['end_date'] && $value['capacity']) {
+    if ($value['node'] && $value['start_date'] && $value['end_date']) {
       $start_date = $value['start_date'];
       $end_date = $value['end_date'];
 
-      $max_capacity = FALSE;
+      $node = Node::load($value['node']);
 
-      $available_units = [];
+      $available_units = bee_webform_get_available_units_for_node($node, $webform_submission, $bee_element_id);
 
-      $nids = _bee_webform_get_nodeids_by_type($webform_submission, $bee_element_id);
-
-      foreach ($nids as $nid) {
-        $node = Node::load($nid);
-
-        if ($node_available_units = bee_webform_get_available_units_for_node($node, $webform_submission, $bee_element_id)) {
-
-          if (count($node_available_units) == $value['capacity']) {
-            $available_units = [$node->id() => $node_available_units];
-            break;
-          }
-          elseif (count($node_available_units) > $value['capacity']) {
-            $available_units[$node->id()] = $node_available_units;
-            $max_capacity = TRUE;
-          }
-          elseif (!$max_capacity) {
-            $available_units[$node->id()] = $node_available_units;
-          }
-        }
-      }
-
-      uasort($available_units, function ($a, $b) {
-        return count($a) - count($b);
-      });
-
-      $index = 0;
       $events_created = [];
 
-      foreach ($available_units as $nid => $node_available_units) {
-        if ($max_capacity && count($node_available_units) < $value['capacity']) {
-          continue;
-        }
+      $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
 
-        $node = Node::load($nid);
+      if ($bee_settings['bookable_type'] == 'daily') {
+        $booked_state = bat_event_load_state_by_machine_name('bee_daily_booked');
+        $event_type = 'availability_daily';
+      }
+      else {
+        $booked_state = bat_event_load_state_by_machine_name('bee_hourly_booked');
+        $event_type = 'availability_hourly';
+      }
 
-        $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+      $start_date = new \DateTime($start_date);
+      $end_date = new \DateTime($end_date);
 
-        if ($bee_settings['bookable_type'] == 'daily') {
-          $booked_state = bat_event_load_state_by_machine_name('bee_daily_booked');
-          $event_type = 'availability_daily';
+      foreach ($available_units as $unit) {
+        if ($value['repeat']) {
+          $repeat_until = new \DateTime($value['repeat_until'] . 'T235959Z');
+
+          $frequency = t('Day');
+          if ($value['repeat_frequency'] == 'weekly') {
+            $frequency = $start_date->format('l');
+          }
+          elseif ($value['repeat_frequency'] == 'monthly') {
+            $frequency = t('@day of Month', ['@day' => $start_date->format('jS')]);
+          }
+
+          $label = t('Reservations for @node Every @frequency from @start_time-@end_time from @start_date -> @end_date', [
+            '@node' => $node->label(),
+            '@frequency' => $frequency,
+            '@start_time' => $start_date->format('gA'),
+            '@end_time' => $end_date->format('gA'),
+            '@start_date' => $start_date->format('M j Y'),
+            '@end_date' => $repeat_until->format('M j Y'),
+          ]);
+
+          $rrule = new RRule([
+            'FREQ' => strtoupper($value['repeat_frequency']),
+            'UNTIL' => $value['repeat_until'] . 'T235959Z',
+          ]);
+
+          $event = bat_event_series_create([
+            'type' => $event_type,
+            'label' => $label,
+            'rrule' => $rrule->rfcString(),
+          ]);
         }
         else {
-          $booked_state = bat_event_load_state_by_machine_name('bee_hourly_booked');
-          $event_type = 'availability_hourly';
+          $event = bat_event_create(['type' => $event_type]);
         }
 
-        $start_date = new \DateTime($start_date);
-        $end_date = new \DateTime($end_date);
+        $event_dates = [
+          'value' => $start_date->format('Y-m-d\TH:i:00'),
+          'end_value' => $end_date->format('Y-m-d\TH:i:00'),
+        ];
+        $event->set('event_dates', $event_dates);
+        $event->set('event_state_reference', $booked_state->id());
 
-        foreach ($node_available_units as $unit) {
-          if ($value['repeat']) {
-            $repeat_until = new \DateTime($value['repeat_until'] . 'T235959Z');
+        $event->set('field_event_webform_submission', $webform_submission->id());
+        $event->set('event_bat_unit_reference', $unit);
+        $event->save();
 
-            $frequency = t('Day');
-            if ($value['repeat_frequency'] == 'weekly') {
-              $frequency = $start_date->format('l');
-            }
-            elseif ($value['repeat_frequency'] == 'monthly') {
-              $frequency = t('@day of Month', ['@day' => $start_date->format('jS')]);
-            }
+        if ($value['repeat']) {
+          $query = \Drupal::entityQuery('bat_event')
+            ->condition('event_series.target_id', $event->id());
+          $events_created = $query->execute();
 
-            $label = t('Reservations for @node Every @frequency from @start_time-@end_time from @start_date -> @end_date', [
-              '@node' => $node->label(),
-              '@frequency' => $frequency,
-              '@start_time' => $start_date->format('gA'),
-              '@end_time' => $end_date->format('gA'),
-              '@start_date' => $start_date->format('M j Y'),
-              '@end_date' => $repeat_until->format('M j Y'),
-            ]);
-
-            $rrule = new RRule([
-              'FREQ' => strtoupper($value['repeat_frequency']),
-              'UNTIL' => $value['repeat_until'] . 'T235959Z',
-            ]);
-
-            $event = bat_event_series_create([
-              'type' => $event_type,
-              'label' => $label,
-              'rrule' => $rrule->rfcString(),
-            ]);
-          }
-          else {
-            $event = bat_event_create(['type' => $event_type]);
-          }
-
-          $event_dates = [
-            'value' => $start_date->format('Y-m-d\TH:i:00'),
-            'end_value' => $end_date->format('Y-m-d\TH:i:00'),
-          ];
-          $event->set('event_dates', $event_dates);
-          $event->set('event_state_reference', $booked_state->id());
-
-          $event->set('field_event_webform_submission', $webform_submission->id());
-          $event->set('event_bat_unit_reference', $unit);
-          $event->save();
-
-          if ($value['repeat']) {
-            $query = \Drupal::entityQuery('bat_event')
-              ->condition('event_series.target_id', $event->id());
-            $events_created = $query->execute();
-
-            foreach ($events_created as $event_id) {
-              $repeat_event = bat_event_load($event_id);
-              $repeat_event->set('field_event_webform_submission', $webform_submission->id());
-              $repeat_event->save();
-            }
-          }
-          else {
-            $events_created[] = $event->id();
-          }
-
-          $data = $webform_submission->getData();
-          $data[$bee_element_id]['events'] = implode(',', $events_created);
-
-          $webform_submission->setElementData($bee_element_id, $data[$bee_element_id]);
-          $webform_submission->save();
-
-          if (++$index == $value['capacity']) {
-            break 2;
+          foreach ($events_created as $event_id) {
+            $repeat_event = bat_event_load($event_id);
+            $repeat_event->set('field_event_webform_submission', $webform_submission->id());
+            $repeat_event->save();
           }
         }
+        else {
+          $events_created[] = $event->id();
+        }
+
+        $data = $webform_submission->getData();
+        $data[$bee_element_id]['events'] = implode(',', $events_created);
+
+        $webform_submission->setElementData($bee_element_id, $data[$bee_element_id]);
+        $webform_submission->save();
       }
 
       // Send email with summary of any allocations made.
@@ -225,27 +187,15 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
 function bee_webform_get_available_units($values) {
   $start_date = $values['start_date'];
   $end_date = $values['end_date'];
-  $content_type = $values['content_type'];
+  $node = Node::load($values['node']);
 
-  $bee_settings = \Drupal::config('node.type.' . $content_type)->get('bee');
+  $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
   $availability_type = $bee_settings['bookable_type'];
-
-  $units_by_nid = [];
-  $query = \Drupal::entityQuery('node')
-    ->condition('type', $content_type);
-  $nids = $query->execute();
-
-  // Allow other modules to alter the available units for this node.
-  $context = [
-    'form_values' => $values,
-    'nids' => $nids,
-  ];
-  \Drupal::moduleHandler()->alter('bee_webform_available_node_ids', $nids, $context);
 
   $field_name = 'field_availability_' . $availability_type . '_target_id';
   $query = \Drupal::database()->select('node__field_availability_' . $availability_type, 'nfa');
   $query->addField('nfa', $field_name);
-  $query->condition('nfa.entity_id', $nids, 'IN');
+  $query->condition('nfa.entity_id', $node->id());
   $unit_ids = $query->execute()->fetchCol();
 
   $drupal_units = bat_unit_load_multiple($unit_ids);
@@ -421,30 +371,6 @@ function _bee_webform_get_webform_bee_reservation_element(Webform $webform) {
 }
 
 /**
- * @param \Drupal\webform\Entity\WebformSubmission $webform_submission
- * @param $bee_element_id
- *
- * @return array
- */
-function _bee_webform_get_nodeids_by_type(WebformSubmission $webform_submission, $bee_element_id) {
-  $data = $webform_submission->getData();
-
-  $query = \Drupal::entityQuery('node')
-    ->condition('type', $data[$bee_element_id]['content_type']);
-
-  $nids = $query->execute();
-
-  // Allow other modules to alter the available units for this node.
-  $context = [
-    'webform_submission' => $webform_submission,
-    'nids' => $nids,
-  ];
-  \Drupal::moduleHandler()->alter('bee_webform_available_node_ids', $nids, $context);
-
-  return $nids;
-}
-
-/**
  * @param \Drupal\webform\Entity\Webform $webform
  * @param \Drupal\webform\Entity\WebformSubmission $webform_submission
  * @param $bee_element_id
@@ -459,33 +385,26 @@ function bee_webform_add_reservation_to_cart(Webform $webform, WebformSubmission
 
   $start_date = new \DateTime($data[$bee_element_id]['start_date']);
   $end_date = new \DateTime($data[$bee_element_id]['end_date']);
+  $node = Node::load($data[$bee_element_id]['node']);
 
   foreach ($cart->getItems() as $order_item) {
     if ($order_item->bundle() == 'bee') {
-      $nids = _bee_webform_get_nodeids_by_type($webform_submission, $bee_element_id);
+      if (bee_webform_get_available_units_for_node($node, $webform_submission, $bee_element_id)) {
+        $booking = bat_booking_create([
+          'type' => 'bee',
+          'label' => $node->label(),
+        ]);
+        $booking->set('booking_start_date', $start_date->format('Y-m-d\TH:i:s'));
+        $booking->set('booking_end_date', $end_date->format('Y-m-d\TH:i:s'));
+        $booking->set('booking_capacity', $data[$bee_element_id]['capacity']);
+        $booking->save();
 
-      foreach ($nids as $nid) {
-        $node = Node::load($nid);
+        $unit_price = bee_get_unit_price($node, $booking, $start_date, $end_date);
 
-        if (bee_webform_get_available_units_for_node($node, $webform_submission, $bee_element_id)) {
-          $booking = bat_booking_create([
-            'type' => 'bee',
-            'label' => $node->label(),
-          ]);
-          $booking->set('booking_start_date', $start_date->format('Y-m-d\TH:i:s'));
-          $booking->set('booking_end_date', $end_date->format('Y-m-d\TH:i:s'));
-          $booking->set('booking_capacity', $data[$bee_element_id]['capacity']);
-          $booking->save();
-
-          $unit_price = bee_get_unit_price($node, $booking, $start_date, $end_date);
-
-          $order_item->set('field_booking', $booking);
-          $order_item->set('field_node', $node);
-          $order_item->setUnitPrice($unit_price, TRUE);
-          $order_item->save();
-
-          break;
-        }
+        $order_item->set('field_booking', $booking);
+        $order_item->set('field_node', $node);
+        $order_item->setUnitPrice($unit_price, TRUE);
+        $order_item->save();
       }
     }
   }
