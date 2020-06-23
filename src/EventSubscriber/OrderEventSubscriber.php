@@ -3,7 +3,7 @@
 namespace Drupal\bee\EventSubscriber;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\Core\Entity\Query\QueryFactory;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\state_machine\Event\WorkflowTransitionEvent;
 use RRule\RRule;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -14,11 +14,11 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 class OrderEventSubscriber implements EventSubscriberInterface {
 
   /**
-   * The entity query factory.
+   * The entity manager.
    *
-   * @var \Drupal\Core\Entity\Query\QueryFactory
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
    */
-  protected $queryFactory;
+  protected $entityTypeManager;
 
   /**
    * The config factory.
@@ -30,13 +30,13 @@ class OrderEventSubscriber implements EventSubscriberInterface {
   /**
    * Constructs a new OrderEventSubscriber object.
    *
-   * @param \Drupal\Core\Entity\Query\QueryFactory $query_factory
-   *   The entity query factory.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_manager
+   *   The entity manager.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory.
    */
-  public function __construct(QueryFactory $query_factory, ConfigFactoryInterface $config_factory) {
-    $this->queryFactory = $query_factory;
+  public function __construct(EntityTypeManagerInterface $entity_manager, ConfigFactoryInterface $config_factory) {
+    $this->entityTypeManager = $entity_manager;
     $this->configFactory = $config_factory;
   }
 
@@ -111,7 +111,7 @@ class OrderEventSubscriber implements EventSubscriberInterface {
 
             $booking->set('booking_event_series_reference', $event_series->id());
 
-            $query = $this->queryFactory->get('bat_event')
+            $query = $this->entityTypeManager->getStorage('bat_event')->getQuery()
               ->condition('event_series.target_id', $event_series->id());
             $events_created = $query->execute();
 
