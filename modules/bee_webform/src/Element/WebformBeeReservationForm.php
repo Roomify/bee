@@ -194,7 +194,8 @@ class WebformBeeReservationForm extends WebformCompositeBase {
         $form['elements'][$key]['#webform_composite_elements']['node']['#attributes'] = [
           'disabled' => TRUE,
         ];
-      } else {
+      }
+      else {
         $node_options = ['' => t('- Select -')] + $node_options;
 
         $form['elements'][$key]['#webform_composite_elements']['node']['#options'] = $node_options;
