@@ -2,6 +2,7 @@ name: Bookable Entities Everywhere
 type: module
 description: Bookable Entities Everywhere - easily make content types bookable with the BAT module.
 core: 8.x
+core_version_requirement: ^8 || ^9
 package: bat
 
 dependencies:
