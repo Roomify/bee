@@ -486,13 +486,13 @@ class AddReservationForm extends FormBase {
   /**
    * Get number of events in the repeating sequence.
    *
-   * @param $start_date
-   * @param $repeat_frequency
-   * @param $repeat_until
+   * @param \DateTime $start_date
+   * @param string $repeat_frequency
+   * @param string $repeat_until
    *
    * @return int
    */
-  protected function getRepeatingEventsCount($start_date, $repeat_frequency, $repeat_until) {
+  protected function getRepeatingEventsCount(\DateTime $start_date, $repeat_frequency, $repeat_until) {
     $rrule = new RRule([
       'FREQ' => strtoupper($repeat_frequency),
       'UNTIL' => $repeat_until . 'T235959Z',
@@ -503,10 +503,10 @@ class AddReservationForm extends FormBase {
   }
 
   /**
-   * @param $nid
-   * @param $start
-   * @param $repeat_frequency
-   * @param $repeat_until
+   * @param int $nid
+   * @param string $start
+   * @param string $repeat_frequency
+   * @param string $repeat_until
    *
    * @return bool
    */
@@ -551,9 +551,9 @@ class AddReservationForm extends FormBase {
   /**
    * Get available Units.
    *
-   * @param $nid
-   * @param $start_date
-   * @param $end_date
+   * @param int $nid
+   * @param string $start_date
+   * @param string $end_date
    *
    * return array
    */

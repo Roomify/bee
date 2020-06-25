@@ -1,5 +1,6 @@
 <?php
 
+use Drupal\bat_booking\Entity\Booking;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
@@ -19,6 +20,8 @@ use Drupal\commerce_product\Entity\ProductVariation;
 use Drupal\commerce_order\Entity\OrderItemType;
 use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\commerce_store\Entity\Store;
+use Drupal\node\Entity\Node;
+use Drupal\node\Entity\NodeType;
 
 /**
  * Implements hook_form_alter().
@@ -685,10 +688,10 @@ function bee_views_pre_render(ViewExecutable $view) {
 /**
  * Add "Availability" field to the node type.
  *
- * @param $field_name
- * @param $node_type
+ * @param string $field_name
+ * @param \Drupal\node\Entity\NodeType $node_type
  */
-function bee_add_availability_field($field_name, $node_type) {
+function bee_add_availability_field($field_name, NodeType $node_type) {
   $field_storage = FieldStorageConfig::loadByName('node', $field_name);
   $field = FieldConfig::loadByName('node', $node_type->id(), $field_name);
 
@@ -725,10 +728,10 @@ function bee_add_availability_field($field_name, $node_type) {
 /**
  * Add "Open Hours" field to the node type.
  *
- * @param $field_name
- * @param $node_type
+ * @param string $field_name
+ * @param \Drupal\node\Entity\NodeType $node_type
  */
-function bee_add_open_hours_field($field_name, $node_type) {
+function bee_add_open_hours_field($field_name, NodeType $node_type) {
   $field_storage = FieldStorageConfig::loadByName('node', $field_name);
   $field = FieldConfig::loadByName('node', $node_type->id(), $field_name);
 
@@ -792,10 +795,10 @@ function bee_add_open_hours_field($field_name, $node_type) {
 /**
  * Add "Set Open Hours" field to the node type.
  *
- * @param $field_name
- * @param $node_type
+ * @param string $field_name
+ * @param \Drupal\node\Entity\NodeType $node_type
  */
-function bee_add_use_open_hours_field($field_name, $node_type) {
+function bee_add_use_open_hours_field($field_name, NodeType $node_type) {
   $field_storage = FieldStorageConfig::loadByName('node', $field_name);
   $field = FieldConfig::loadByName('node', $node_type->id(), $field_name);
 
@@ -839,10 +842,10 @@ function bee_add_use_open_hours_field($field_name, $node_type) {
 /**
  * Add "Product" field to the node type.
  *
- * @param $field_name
- * @param $node_type
+ * @param string $field_name
+ * @param \Drupal\node\Entity\NodeType $node_type
  */
-function bee_add_product_reference_field($field_name, $node_type) {
+function bee_add_product_reference_field($field_name, NodeType $node_type) {
   $field_storage = FieldStorageConfig::loadByName('node', $field_name);
   $field = FieldConfig::loadByName('node', $node_type->id(), $field_name);
 
@@ -883,10 +886,10 @@ function bee_add_product_reference_field($field_name, $node_type) {
 /**
  * Add "Price" field to the node type.
  *
- * @param $field_name
- * @param $node_type
+ * @param string $field_name
+ * @param \Drupal\node\Entity\NodeType $node_type
  */
-function bee_add_price_field($field_name, $node_type) {
+function bee_add_price_field($field_name, NodeType $node_type) {
   $field_storage = FieldStorageConfig::loadByName('node', $field_name);
   $field = FieldConfig::loadByName('node', $node_type->id(), $field_name);
 
@@ -934,8 +937,8 @@ function bee_add_price_field($field_name, $node_type) {
 /**
  * Add "Price frequency" field to the node type.
  *
- * @param $field_name
- * @param $node_type
+ * @param string $field_name
+ * @param \Drupal\node\Entity\NodeType $node_type
  */
 function bee_add_price_frequency_field($field_name, $node_type) {
   $field_storage = FieldStorageConfig::loadByName('node', $field_name);
@@ -1010,9 +1013,9 @@ function bee_create_bee_product_variation_type() {
 /**
  * Create a "Product" type for each node type in BEE.
  *
- * @param $node_type
+ * @param \Drupal\node\Entity\NodeType $node_type
  */
-function bee_create_node_product_type($node_type) {
+function bee_create_node_product_type(NodeType $node_type) {
   $id = 'bee_' . $node_type->id();
 
   if (ProductType::load($id) === NULL) {
@@ -1425,14 +1428,14 @@ function bee_preprocess_bat_event_series(array &$variables) {
 }
 
 /**
- * @param $node
- * @param $booking
- * @param $start_date
- * @param $end_date
+ * @param \Drupal\node\Entity\Node $node
+ * @param \Drupal\bat_booking\Entity\Booking $booking
+ * @param DateTime $start_date
+ * @param DateTime $end_date
  *
  * @return \Drupal\commerce_price\Price
  */
-function bee_get_unit_price($node, $booking, $start_date, $end_date) {
+function bee_get_unit_price(Node $node, Booking $booking, DateTime $start_date, DateTime $end_date) {
   $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
 
   $interval = $start_date->diff($end_date);

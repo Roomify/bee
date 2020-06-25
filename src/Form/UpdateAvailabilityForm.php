@@ -249,13 +249,13 @@ class UpdateAvailabilityForm extends FormBase {
   }
 
   /**
-   * @param $node
-   * @param $start_date
-   * @param $end_date
-   * @param $type_id
-   * @param $new_state
+   * @param \Drupal\node\Entity\Node $node
+   * @param \DateTime $start_date
+   * @param \DateTime $end_date
+   * @param int $type_id
+   * @param string $new_state
    */
-  private function createDailyEvent($node, $start_date, $end_date, $type_id, $new_state) {
+  private function createDailyEvent(Node $node, \DateTime $start_date, \DateTime $end_date, $type_id, $new_state) {
     $temp_end_date = clone($end_date);
     $temp_end_date->sub(new \DateInterval('PT1M'));
 
@@ -305,13 +305,13 @@ class UpdateAvailabilityForm extends FormBase {
   }
 
   /**
-   * @param $node
-   * @param $start_date
-   * @param $end_date
-   * @param $type_id
-   * @param $new_state
+   * @param \Drupal\node\Entity\Node $node
+   * @param \DateTime $start_date
+   * @param \DateTime $end_date
+   * @param int $type_id
+   * @param string $new_state
    */
-  private function createHoulyEvent($node, $start_date, $end_date, $type_id, $new_state) {
+  private function createHoulyEvent(Node $node, \DateTime $start_date, \DateTime $end_date, $type_id, $new_state) {
     $temp_end_date = clone($end_date);
     $temp_end_date->sub(new \DateInterval('PT1M'));
 
