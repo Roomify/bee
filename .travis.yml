@@ -1,16 +1,20 @@
 language: php
 
 sudo: required
-dist: trusty
+dist: bionic
 
 php:
-  - 7.0
   - 7.1
   - 7.2
   - 7.3
+  - 7.4
 
 addons:
   chrome: stable
+
+services:
+  - mysql
+  - xvfb
 
 mysql:
   database: drupal
@@ -20,16 +24,15 @@ mysql:
 before_install:
   - export CHROME_BIN=chromium-browser
   - export DISPLAY=:99.0
-  - sh -e /etc/init.d/xvfb start
-  - wget http://chromedriver.storage.googleapis.com/78.0.3904.105/chromedriver_linux64.zip && unzip chromedriver_linux64.zip && sudo mv chromedriver /usr/bin
+  - wget http://chromedriver.storage.googleapis.com/83.0.4103.39/chromedriver_linux64.zip && unzip chromedriver_linux64.zip && sudo mv chromedriver /usr/bin
 
 install:
   # Set unlimited memory_limit.
-  - if [ "${TRAVIS_PHP_VERSION}" != 'hhvm' ]; then INI_FILE=~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini; else INI_FILE=/etc/hhvm/php.ini; fi;
+  - INI_FILE=~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini
   - echo "memory_limit = -1" >> "${INI_FILE}"
 
   # Remove xdebug for the moment. We aren't generating code coverage, and it slows us down.
-  - if [ "${TRAVIS_PHP_VERSION}" != '7.0' ]; then mv ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/xdebug.ini /tmp/xdebug.ini; fi;
+  - mv ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/xdebug.ini /tmp/xdebug.ini
 
 before_script:
   # Create drupal database.
