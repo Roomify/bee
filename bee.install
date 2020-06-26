@@ -190,5 +190,7 @@ function bee_update_8005() {
  * Add booking "Event series" field.
  */
 function bee_update_8006() {
-  bee_create_booking_event_series_reference_field();
+  if (bat_booking_type_load('bee') !== NULL) {
+    bee_create_booking_event_series_reference_field();
+  }
 }
