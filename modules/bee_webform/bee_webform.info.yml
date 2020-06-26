@@ -2,6 +2,7 @@ name: BEE Webform
 type: module
 description: Provides a webform component for creating BEE bookings.
 core: 8.x
+core_version_requirement: ^8 || ^9
 package: bat
 
 dependencies:
