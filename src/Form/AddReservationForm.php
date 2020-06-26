@@ -62,7 +62,9 @@ class AddReservationForm extends FormBase {
    *   The cart provider.
    */
   public function __construct(EntityTypeManagerInterface $entity_type_manager, ConfigFactoryInterface $config_factory, ?CartManagerInterface $cart_manager, ?CartProviderInterface $cart_provider) {
-    $this->orderItemStorage = $entity_type_manager->getStorage('commerce_order_item');
+    if ($entity_type_manager->hasHandler('commerce_order_item', 'storage')) {
+      $this->orderItemStorage = $entity_type_manager->getStorage('commerce_order_item');
+    }
     $this->configFactory = $config_factory;
     $this->cartManager = $cart_manager;
     $this->cartProvider = $cart_provider;
