@@ -56,12 +56,12 @@ class AddReservationForm extends FormBase {
    *   The entity type manager.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory.
-   * @param \Drupal\commerce_cart\CartManagerInterface $cart_manager
+   * @param \Drupal\commerce_cart\CartManagerInterface|null $cart_manager
    *   The cart manager.
-   * @param \Drupal\commerce_cart\CartProviderInterface $cart_provider
+   * @param \Drupal\commerce_cart\CartProviderInterface|null $cart_provider
    *   The cart provider.
    */
-  public function __construct(EntityTypeManagerInterface $entity_type_manager, ConfigFactoryInterface $config_factory, CartManagerInterface $cart_manager, CartProviderInterface $cart_provider) {
+  public function __construct(EntityTypeManagerInterface $entity_type_manager, ConfigFactoryInterface $config_factory, ?CartManagerInterface $cart_manager, ?CartProviderInterface $cart_provider) {
     $this->orderItemStorage = $entity_type_manager->getStorage('commerce_order_item');
     $this->configFactory = $config_factory;
     $this->cartManager = $cart_manager;
@@ -75,8 +75,8 @@ class AddReservationForm extends FormBase {
     return new static(
       $container->get('entity_type.manager'),
       $container->get('config.factory'),
-      $container->get('commerce_cart.cart_manager'),
-      $container->get('commerce_cart.cart_provider')
+      $container->get('commerce_cart.cart_manager', ContainerInterface::IGNORE_ON_INVALID_REFERENCE),
+      $container->get('commerce_cart.cart_provider', ContainerInterface::IGNORE_ON_INVALID_REFERENCE)
     );
   }
 
