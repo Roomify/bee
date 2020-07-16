@@ -15,6 +15,6 @@ services:
       - { name: commerce_price.price_resolver, priority: 600 }
   bee.order_subscriber:
     class: Drupal\bee\EventSubscriber\OrderEventSubscriber
-    arguments: ['@config.factory']
+    arguments: ['@entity_type.manager', '@config.factory']
     tags:
       - { name: event_subscriber }
