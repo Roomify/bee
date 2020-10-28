@@ -95,7 +95,7 @@ class BeeController extends ControllerBase implements ContainerInjectionInterfac
           if ($minTime == FALSE || strtotime($starthours) < strtotime($minTime)) {
             $minTime = $starthours;
           }
-          if ($maxTime == FALSE || strtotime($endhours) < strtotime($maxTime)) {
+          if ($maxTime == FALSE || strtotime($endhours) > strtotime($maxTime)) {
             $maxTime = $endhours;
           }
 
