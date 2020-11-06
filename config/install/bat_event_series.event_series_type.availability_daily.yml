@@ -1,6 +1,9 @@
 langcode: en
 status: true
-dependencies: {  }
+dependencies:
+  enforced:
+    module:
+      - bee
 name: 'Availability Daily'
 type: availability_daily
 event_granularity: bat_daily
