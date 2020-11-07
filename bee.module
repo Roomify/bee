@@ -401,8 +401,9 @@ function bee_node_type_edit_form_submit(array &$form, FormStateInterface $form_s
         }
       }
 
-      $bat_type = bat_type_load($bee_settings['type_id']);
-      $bat_type->delete();
+      if ($bat_type = bat_type_load($bee_settings['type_id'])) {
+        $bat_type->delete();
+      }
     }
 
     \Drupal::configFactory()->getEditable('node.type.' . $node_type->id())->clear('third_party_settings.bee')->save();
