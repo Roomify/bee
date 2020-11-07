@@ -55,7 +55,7 @@ function bee_webform_form_submit($form, FormStateInterface $form_state) {
 
       $events_created = [];
 
-      $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+      $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('third_party_settings.bee');
 
       if ($bee_settings['bookable_type'] == 'daily') {
         $booked_state = bat_event_load_state_by_machine_name('bee_daily_booked');
@@ -189,7 +189,7 @@ function bee_webform_get_available_units($values) {
   $end_date = $values['end_date'];
   $node = Node::load($values['node']);
 
-  $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+  $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('third_party_settings.bee');
   $availability_type = $bee_settings['bookable_type'];
 
   $field_name = 'field_availability_' . $availability_type . '_target_id';
@@ -235,7 +235,7 @@ function bee_webform_get_available_units_for_node($node, WebformSubmission $webf
   $start_date = $data[$bee_element_id]['start_date'];
   $end_date = $data[$bee_element_id]['end_date'];
 
-  $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+  $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('third_party_settings.bee');
 
   $drupal_units = [];
   foreach ($node->get('field_availability_' . $bee_settings['bookable_type']) as $unit) {

@@ -111,7 +111,7 @@ function bee_uninstall() {
       }
     }
 
-    Drupal::configFactory()->getEditable('node.type.' . $node_type->id())->clear('bee')->save();
+    Drupal::configFactory()->getEditable('node.type.' . $node_type->id())->clear('third_party_settings.bee')->save();
   }
 
   $states = [

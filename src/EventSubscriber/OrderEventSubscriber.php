@@ -65,7 +65,7 @@ class OrderEventSubscriber implements EventSubscriberInterface {
           $start_date = new \DateTime($booking->get('booking_start_date')->value);
           $end_date = new \DateTime($booking->get('booking_end_date')->value);
 
-          $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('bee');
+          $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('third_party_settings.bee');
 
           if ($bee_settings['bookable_type'] == 'daily') {
             $booked_state = bat_event_load_state_by_machine_name('bee_daily_booked');
@@ -162,7 +162,7 @@ class OrderEventSubscriber implements EventSubscriberInterface {
    * return array
    */
   protected function getAvailableUnits($node, $start_date, $end_date) {
-    $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('bee');
+    $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('third_party_settings.bee');
 
     $units_ids = [];
     foreach ($node->get('field_availability_' . $bee_settings['bookable_type']) as $unit) {

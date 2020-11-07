@@ -1,0 +1,19 @@
+node.type.*.third_party.bee:
+  type: mapping
+  label: 'BEE'
+  mapping:
+    bookable:
+      type: integer
+      label: 'Bookable'
+    bookable_type:
+      type: string
+      label: 'Bookable type'
+    availability:
+      type: string
+      label: 'Availability'
+    payment:
+      type: integer
+      label: 'Payment'
+    type_id:
+      type: string
+      label: 'Type id'

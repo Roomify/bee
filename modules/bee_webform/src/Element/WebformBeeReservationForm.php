@@ -30,7 +30,7 @@ class WebformBeeReservationForm extends WebformCompositeBase {
         $node_type = NodeType::load($node_type);
         $content_type_options[$node_type->id()] = $node_type->label();
 
-        $bee_settings = \Drupal::config('node.type.' . $node_type->id())->get('bee');
+        $bee_settings = \Drupal::config('node.type.' . $node_type->id())->get('third_party_settings.bee');
 
         if (isset($bee_settings['bookable_type'])) {
           $bookable_type = $bee_settings['bookable_type'];
@@ -227,7 +227,7 @@ class WebformBeeReservationForm extends WebformCompositeBase {
 
     $nids = $query->execute();
     foreach ($node_storage->loadMultiple($nids) as $node) {
-      $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('bee');
+      $bee_settings = \Drupal::config('node.type.' . $node->bundle())->get('third_party_settings.bee');
 
       $drupal_units = [];
       foreach ($node->get('field_availability_' . $bee_settings['bookable_type']) as $unit) {

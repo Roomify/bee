@@ -45,7 +45,7 @@ class BeeController extends ControllerBase implements ContainerInjectionInterfac
    * Availability calendar page.
    */
   public function availability(NodeInterface $node) {
-    $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('bee');
+    $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('third_party_settings.bee');
 
     $unit_type = $bee_settings['type_id'];
 

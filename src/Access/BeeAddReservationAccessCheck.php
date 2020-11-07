@@ -49,7 +49,7 @@ class BeeAddReservationAccessCheck implements AccessInterface {
    *   A \Drupal\Core\Access\AccessInterface constant value.
    */
   public function access(AccountInterface $account, Node $node = NULL) {
-    $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('bee');
+    $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('third_party_settings.bee');
 
     if (isset($bee_settings['bookable']) && $bee_settings['bookable']) {
       if ($account->hasPermission('create bee reservation')) {

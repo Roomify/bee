@@ -52,7 +52,7 @@ class UpdateAvailabilityForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, NodeInterface $node = NULL) {
-    $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('bee');
+    $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('third_party_settings.bee');
     $today = new \DateTime();
 
     $tomorrow = clone($today);
@@ -151,7 +151,7 @@ class UpdateAvailabilityForm extends FormBase {
     $start_date = $values['start_date'];
     $end_date = $values['end_date'];
 
-    $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('bee');
+    $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('third_party_settings.bee');
 
     if ($bee_settings['bookable_type'] == 'daily') {
       $start_date = new \DateTime($start_date);
@@ -184,7 +184,7 @@ class UpdateAvailabilityForm extends FormBase {
     $start_date = $values['start_date'];
     $end_date = $values['end_date'];
 
-    $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('bee');
+    $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('third_party_settings.bee');
 
     if ($bee_settings['bookable_type'] == 'daily') {
       $start_date = new \DateTime($start_date);
