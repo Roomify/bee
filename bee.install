@@ -1,6 +1,7 @@
 <?php
 
 use Drupal\Core\Config\FileStorage;
+use Drupal\node\Entity\NodeType;
 use Drupal\user\RoleInterface;
 
 /**
@@ -111,7 +112,7 @@ function bee_uninstall() {
       }
     }
 
-    Drupal::configFactory()->getEditable('node.type.' . $node_type->id())->clear('third_party_settings.bee')->save();
+    Drupal::configFactory()->getEditable('node.type.' . $node_type->id())->clear('bee')->save();
   }
 
   $states = [
@@ -192,5 +193,19 @@ function bee_update_8005() {
 function bee_update_8006() {
   if (bat_booking_type_load('bee') !== NULL) {
     bee_create_booking_event_series_reference_field();
+  }
+}
+
+/**
+ * Move "bee" settings to "third_party_settings".
+ */
+function bee_update_8007() {
+  $node_types = NodeType::loadMultiple();
+
+  foreach ($node_types as $node_type) {
+    if ($bee_settings = \Drupal::config('node.type.' . $node_type->id())->get('bee')) {
+      \Drupal::configFactory()->getEditable('node.type.' . $node_type->id())->clear('bee')->save();
+      \Drupal::configFactory()->getEditable('node.type.' . $node_type->id())->set('third_party_settings.bee', $bee_settings)->save();
+    }
   }
 }
