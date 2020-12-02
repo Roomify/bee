@@ -61,6 +61,13 @@ class UpdateAvailabilityForm extends FormBase {
     $one_hour_later = clone($today);
     $one_hour_later->modify('+1 hour');
 
+    $units_options[] = t('- All units -');
+    foreach ($node->get('field_availability_hourly') as $unit) {
+      if ($unit->entity) {
+        $units_options[$unit->entity->id()] = $unit->entity->label();
+      }
+    }
+
     $form['node'] = [
       '#type' => 'hidden',
       '#value' => $node->id(),
@@ -69,6 +76,12 @@ class UpdateAvailabilityForm extends FormBase {
     $form['availability'] = [
       '#type' => 'details',
       '#title' => t('Update availability'),
+    ];
+
+    $form['availability']['unit'] = [
+      '#type' => 'select',
+      '#title' => t('Unit(s)'),
+      '#options' => $units_options,
     ];
 
     $form['availability']['state'] = [
@@ -183,6 +196,7 @@ class UpdateAvailabilityForm extends FormBase {
     $node = Node::load($values['node']);
     $start_date = $values['start_date'];
     $end_date = $values['end_date'];
+    $unit_id = $values['unit'];
 
     $bee_settings = $this->configFactory->get('node.type.' . $node->bundle())->get('third_party_settings.bee');
 
@@ -209,11 +223,11 @@ class UpdateAvailabilityForm extends FormBase {
           $temp_end_date = clone($date);
           $temp_end_date->add($repeat_interval);
 
-          $this->createDailyEvent($node, $date, $temp_end_date, $bee_settings['type_id'], $values['state']);
+          $this->createDailyEvent($node, $date, $temp_end_date, $bee_settings['type_id'], $values['state'], $unit_id);
         }
       }
       else {
-        $this->createDailyEvent($node, $start_date, $end_date, $bee_settings['type_id'], $values['state']);
+        $this->createDailyEvent($node, $start_date, $end_date, $bee_settings['type_id'], $values['state'], $unit_id);
       }
     }
     else {
@@ -239,11 +253,11 @@ class UpdateAvailabilityForm extends FormBase {
           $temp_end_date = clone($date);
           $temp_end_date->add($repeat_interval);
 
-          $this->createHoulyEvent($node, $date, $temp_end_date, $bee_settings['type_id'], $values['state']);
+          $this->createHoulyEvent($node, $date, $temp_end_date, $bee_settings['type_id'], $values['state'], $unit_id);
         }
       }
       else {
-        $this->createHoulyEvent($node, $start_date, $end_date, $bee_settings['type_id'], $values['state']);
+        $this->createHoulyEvent($node, $start_date, $end_date, $bee_settings['type_id'], $values['state'], $unit_id);
       }
     }
   }
@@ -254,8 +268,9 @@ class UpdateAvailabilityForm extends FormBase {
    * @param \DateTime $end_date
    * @param int $type_id
    * @param string $new_state
+   * @param int $unit_id
    */
-  private function createDailyEvent(Node $node, \DateTime $start_date, \DateTime $end_date, $type_id, $new_state) {
+  private function createDailyEvent(Node $node, \DateTime $start_date, \DateTime $end_date, $type_id, $new_state, $unit_id) {
     $temp_end_date = clone($end_date);
     $temp_end_date->sub(new \DateInterval('PT1M'));
 
@@ -263,16 +278,21 @@ class UpdateAvailabilityForm extends FormBase {
 
     $available_units = bat_event_get_matching_units($start_date, $temp_end_date, ['bee_daily_available', 'bee_daily_not_available'], $type_id, 'availability_daily');
 
-    $units_ids = [];
-    foreach ($node->get('field_availability_daily') as $unit) {
-      if ($unit->entity) {
-        $units_ids[] = $unit->entity->id();
+    if ($unit_id) {
+      $units_ids = [$unit_id];
+    }
+    else {
+      $units_ids = [];
+      foreach ($node->get('field_availability_daily') as $unit) {
+        if ($unit->entity) {
+          $units_ids[] = $unit->entity->id();
+        }
       }
     }
 
-    $units = array_intersect($units_ids, $available_units);
+    $current_node_available_units = array_intersect($units_ids, $available_units);
 
-    if ($available_units) {
+    if ($current_node_available_units) {
       if ($new_state == 'available') {
         $state = bat_event_load_state_by_machine_name('bee_daily_available');
       }
@@ -280,7 +300,7 @@ class UpdateAvailabilityForm extends FormBase {
         $state = bat_event_load_state_by_machine_name('bee_daily_not_available');
       }
 
-      foreach ($available_units as $unit) {
+      foreach ($current_node_available_units as $unit) {
         $event = bat_event_create(['type' => 'availability_daily']);
         $event_dates = [
           'value' => $start_date->format('Y-m-d\TH:i:00'),
@@ -293,7 +313,9 @@ class UpdateAvailabilityForm extends FormBase {
       }
     }
 
-    foreach ($booked_units as $unit) {
+    $current_node_booked_units = array_intersect($units_ids, $booked_units);
+
+    foreach ($current_node_booked_units as $unit) {
       $bat_unit = bat_unit_load($unit);
       $this->messenger()->addWarning(t('Could not create event from @start to @end for unit @label with ID: @unit', [
         '@unit' => $unit,
@@ -310,8 +332,9 @@ class UpdateAvailabilityForm extends FormBase {
    * @param \DateTime $end_date
    * @param int $type_id
    * @param string $new_state
+   * @param int $unit_id
    */
-  private function createHoulyEvent(Node $node, \DateTime $start_date, \DateTime $end_date, $type_id, $new_state) {
+  private function createHoulyEvent(Node $node, \DateTime $start_date, \DateTime $end_date, $type_id, $new_state, $unit_id) {
     $temp_end_date = clone($end_date);
     $temp_end_date->sub(new \DateInterval('PT1M'));
 
@@ -319,16 +342,21 @@ class UpdateAvailabilityForm extends FormBase {
 
     $available_units = bat_event_get_matching_units($start_date, $temp_end_date, ['bee_hourly_available', 'bee_hourly_not_available'], $type_id, 'availability_hourly');
 
-    $units_ids = [];
-    foreach ($node->get('field_availability_hourly') as $unit) {
-      if ($unit->entity) {
-        $units_ids[] = $unit->entity->id();
+    if ($unit_id) {
+      $units_ids = [$unit_id];
+    }
+    else {
+      $units_ids = [];
+      foreach ($node->get('field_availability_hourly') as $unit) {
+        if ($unit->entity) {
+          $units_ids[] = $unit->entity->id();
+        }
       }
     }
 
-    $units = array_intersect($units_ids, $available_units);
+    $current_node_available_units = array_intersect($units_ids, $available_units);
 
-    if ($units) {
+    if ($current_node_available_units) {
       if ($new_state == 'available') {
         $state = bat_event_load_state_by_machine_name('bee_hourly_available');
       }
@@ -336,7 +364,7 @@ class UpdateAvailabilityForm extends FormBase {
         $state = bat_event_load_state_by_machine_name('bee_hourly_not_available');
       }
 
-      foreach ($units as $unit) {
+      foreach ($current_node_available_units as $unit) {
         $event = bat_event_create(['type' => 'availability_hourly']);
         $event_dates = [
           'value' => $start_date->format('Y-m-d\TH:i:00'),
@@ -349,7 +377,9 @@ class UpdateAvailabilityForm extends FormBase {
       }
     }
 
-    foreach ($booked_units as $unit) {
+    $current_node_booked_units = array_intersect($units_ids, $booked_units);
+
+    foreach ($current_node_booked_units as $unit) {
       $bat_unit = bat_unit_load($unit);
       $this->messenger()->addWarning(t('Could not create event from @start to @end for unit @label with ID: @unit', [
         '@unit' => $unit,
