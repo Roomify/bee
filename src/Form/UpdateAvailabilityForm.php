@@ -62,9 +62,19 @@ class UpdateAvailabilityForm extends FormBase {
     $one_hour_later->modify('+1 hour');
 
     $units_options[] = t('- All units -');
-    foreach ($node->get('field_availability_hourly') as $unit) {
-      if ($unit->entity) {
-        $units_options[$unit->entity->id()] = $unit->entity->label();
+
+    if ($bee_settings['bookable_type'] == 'daily') {
+      foreach ($node->get('field_availability_daily') as $unit) {
+        if ($unit->entity) {
+          $units_options[$unit->entity->id()] = $unit->entity->label();
+        }
+      }
+    }
+    else {
+      foreach ($node->get('field_availability_hourly') as $unit) {
+        if ($unit->entity) {
+          $units_options[$unit->entity->id()] = $unit->entity->label();
+        }
       }
     }
 
@@ -311,6 +321,11 @@ class UpdateAvailabilityForm extends FormBase {
         $event->set('event_bat_unit_reference', $unit);
         $event->save();
       }
+
+      $this->messenger()->addMessage(t('Availability updated!'));
+    }
+    else {
+      $this->messenger()->addWarning(t('Can\'t update availability because there are some blocking events'));
     }
 
     $current_node_booked_units = array_intersect($units_ids, $booked_units);
